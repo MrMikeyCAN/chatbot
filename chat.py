@@ -72,4 +72,4 @@ while True:
                 text_to_speech(bot_name=bot_name, text=response)
 
     else:
-        print(f"{bot_name}: I do not understand...")
+        text_to_speech(bot_name=bot_name, text="I don't understand sir sorry.")
