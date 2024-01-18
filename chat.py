@@ -56,7 +56,7 @@ while True:
     tag = tags[predicted.item()]
 
     if tag == "goodbye":
-        text_to_spech("I am waiting for your orders sir!")
+        text_to_spech(bot_name=bot_name, text="I am waiting for your orders sir!")
         mixer.music.load(sound_path)
         mixer.music.play()
         while mixer.music.get_busy():
@@ -70,7 +70,7 @@ while True:
             if tag == intent["tag"]:
                 response = random.choice(intent["responses"])
                 intent["patterns"].append(sentence)
-                text_to_spech(response)
+                text_to_spech(bot_name=bot_name, text=response)
                 mixer.music.load(sound_path)
                 mixer.music.play()
                 while mixer.music.get_busy():
