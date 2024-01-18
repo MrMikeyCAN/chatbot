@@ -1,9 +1,12 @@
 # Ignore __pycache__ folder
 __pycache__/
 
-# Ignore all files ending with .mp3
+# Ignore all sound files
 *.mp3
 *.waw
+*.wav
 
 #Ignore data.pth
 *.pth
+
+/.vscode
