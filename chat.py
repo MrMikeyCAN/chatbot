@@ -1,12 +1,12 @@
 import torch
-from torch.nn.utils.rnn import pad_sequence
-from torch.nn.functional import softmax
+import json
 from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
+from torch.nn.utils.rnn import pad_sequence
+from torch.nn.functional import softmax
 from utils import text_to_speech
-import json
 
-
+# Metin üretme modeli sınıfı
 class YourTextGenerationModel(torch.nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_size):
         super(YourTextGenerationModel, self).__init__()
@@ -20,10 +20,8 @@ class YourTextGenerationModel(torch.nn.Module):
         output = self.fc(lstm_out)
         return output
 
-    def generate_text(
-        self, start_sequence, max_length=1000, all_words=None, device=None
-    ):
-        generated_sequence = start_sequence.clone()
+    def generate_text(self, start_sequence, max_length=1000, all_words=None, device=None):
+        generated_sequence = start_sequence.clone()  # Giriş dizisinin bir kopyasını oluştur
 
         for _ in range(max_length):
             input_sequence = torch.LongTensor(
@@ -34,7 +32,7 @@ class YourTextGenerationModel(torch.nn.Module):
                 ]
             )
 
-            if len(input_sequence) > 0:  # Check if the sequence is not empty
+            if len(input_sequence) > 0:  # Dizi boş değilse
                 input_sequence_padded = pad_sequence(
                     [input_sequence], batch_first=True, padding_value=0
                 )
@@ -47,21 +45,21 @@ class YourTextGenerationModel(torch.nn.Module):
                 if predicted_word == "<EOS>":
                     break
             else:
-                break  # Break if the input sequence is empty
+                break  # Giriş dizisi boşsa döngüden çık
 
         generated_sequence = [str(word) for word in generated_sequence]
         generated_sequence = list(filter(lambda x: x != "0", generated_sequence))
 
         return " ".join(generated_sequence)
 
-
+# Sohbetbot sınıfı
 class Chatbot:
     def __init__(self, config):
         cuda_available = torch.cuda.is_available() and config.get("device", "cuda")
         self.device = torch.device(config.get("device", "cuda"))
         self.all_words = None
         self.tags = None
-        self.intents = None  # Add this line
+        self.intents = None
         self.load_model(config["model_file"])
         self.bot_name = config.get("bot_name", "Jarvis")
 
@@ -121,7 +119,7 @@ class Chatbot:
                     text_to_speech(bot_name=self.bot_name, text=generated_response)
                     return
         else:
-            start_sequence = self.process_input(input_text)  # Use the processed input
+            start_sequence = self.process_input(input_text)  # İşlenmiş girişi kullan
             generated_response = self.text_gen_model.generate_text(
                 start_sequence, all_words=self.all_words, device=self.device
             )
@@ -142,7 +140,7 @@ if __name__ == "__main__":
         "vocab_size": 10000,
         "embedding_dim": 128,
         "hidden_size": 256,
-        "device": "cuda",  # Adjust as needed
+        "device": "cuda",  # İhtiyaca göre ayarlayın
     }
     chatbot = Chatbot(config)
     chatbot.run()
