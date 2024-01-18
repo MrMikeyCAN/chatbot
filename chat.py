@@ -20,7 +20,7 @@ class YourTextGenerationModel(torch.nn.Module):
         output = self.fc(lstm_out)
         return output
 
-    def generate_text(self, start_sequence, max_length=50):
+    def generate_text(self, start_sequence, max_length=50, all_words=None, device=None):
         generated_sequence = start_sequence.copy()
 
         for _ in range(max_length):
