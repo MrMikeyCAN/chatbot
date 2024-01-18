@@ -4,6 +4,7 @@ import torch
 import random
 from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
+from utils import text_to_spech
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -50,7 +51,7 @@ while True:
     tag = tags[predicted.item()]
 
     if tag == "goodbye":
-        print("I will wait for your orders sir")
+        text_to_spech("I am waiting for your orders sir!")
         break
 
     probs = torch.softmax(output, dim=1)
