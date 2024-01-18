@@ -8,9 +8,8 @@ from utils import text_to_spech
 from pygame import mixer
 
 ### Ses çalma ayarları
-sound_path = "sound.mp3"
+sound_path = "sound.waw"
 mixer.init()
-
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -58,11 +57,10 @@ while True:
 
     if tag == "goodbye":
         text_to_spech("I am waiting for your orders sir!")
-        sound = mixer.Sound(sound_path)
-        sound.set_volume(0.7)
-        sound.play()
-        mixer.quit()
-        print("I am waiting for your orders sir!")
+        mixer.music.load(sound_path)
+        mixer.music.play()
+        while mixer.music.get_busy():
+            continue
         break
 
     probs = torch.softmax(output, dim=1)
@@ -72,8 +70,12 @@ while True:
             if tag == intent["tag"]:
                 response = random.choice(intent["responses"])
                 intent["patterns"].append(sentence)
+                text_to_spech(response)
+                mixer.music.load(sound_path)
+                mixer.music.play()
+                while mixer.music.get_busy():
+                    continue
                 intent["responses"].append(response)
-                print(f"{bot_name}: {response}")
 
     else:
         print(f"{bot_name}: I do not understand...")
