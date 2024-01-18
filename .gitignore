@@ -3,3 +3,6 @@ __pycache__/
 
 # Ignore all files ending with .mp3
 *.mp3
+
+#Ignore data.pth
+*.pth
