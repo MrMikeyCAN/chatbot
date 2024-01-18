@@ -8,5 +8,5 @@ __pycache__/
 
 #Ignore data.pth
 *.pth
-
+*.h5
 /.vscode
