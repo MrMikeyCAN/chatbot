@@ -5,7 +5,8 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from nltk_utils import bag_of_words, tokenize, lemma
 from model import NeuralNet
-import tensorflow as tf
+import torch.optim as optim
+import torch.nn.functional as F
 
 # Load intents from intents.json
 with open("intents.json", "r") as f:
@@ -43,7 +44,7 @@ X_train = np.array(X_train)
 y_train = np.array(y_train)
 
 # Hyperparameters
-num_epochs = 800
+num_epochs = 300
 batch_size = 8
 learning_rate = 0.001
 input_size = len(X_train[0])
@@ -108,7 +109,7 @@ FILE = "data.pth"
 torch.save(data, FILE)
 print(f"Training complete. Model saved to {FILE}")
 
-# Your new code for text generation
+# Your new code for text generation using PyTorch
 seq = [["cloudy"]]  # Replace with your own sequence
 X_gen = []
 y_gen = []
@@ -124,30 +125,55 @@ for i in seq:
 
 print("Total Single Words Dropped are:", total_words_dropped)
 
-X_gen = tf.keras.preprocessing.sequence.pad_sequences(X_gen)
-y_gen = tf.keras.utils.to_categorical(y_gen)
+if X_gen:
+    X_gen = torch.tensor(X_gen, dtype=torch.long)
+    y_gen = torch.tensor(y_gen, dtype=torch.long)
 
-vocab_size = len(all_words) + 1
+    vocab_size = len(all_words) + 1
 
-model_lstm = tf.keras.Sequential(
-    [
-        tf.keras.layers.Embedding(vocab_size, 14),
-        tf.keras.layers.LSTM(100, return_sequences=True),
-        tf.keras.layers.LSTM(100),
-        tf.keras.layers.Dense(100, activation="relu"),
-        tf.keras.layers.Dense(vocab_size, activation="softmax"),
-    ]
-)
-model_lstm.summary()
+    class TextGenerationModel(nn.Module):
+        def __init__(self, vocab_size, embedding_dim, hidden_size):
+            super(TextGenerationModel, self).__init__()
+            self.embedding = nn.Embedding(vocab_size, embedding_dim)
+            self.lstm = nn.LSTM(embedding_dim, hidden_size, batch_first=True)
+            self.fc1 = nn.Linear(hidden_size, 100)
+            self.relu = nn.ReLU()
+            self.fc2 = nn.Linear(100, vocab_size)
+            self.softmax = nn.Softmax(dim=-1)
 
-model_lstm.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=0.004),
-    loss="categorical_crossentropy",
-    metrics=["accuracy"],
-)
-model_lstm.fit(X_gen, y_gen, epochs=150)
+        def forward(self, x):
+            embedded = self.embedding(x)
+            lstm_out, _ = self.lstm(embedded)
+            lstm_out = lstm_out[:, -1, :]
+            fc1_out = self.relu(self.fc1(lstm_out))
+            fc2_out = self.fc2(fc1_out)
+            output = self.softmax(fc2_out)
+            return output
 
-model_lstm.save("nwp.h5")
-vocab_array = np.array(all_words)
+    embedding_dim_gen = 14
+    hidden_size_gen = 100
+    output_size_gen = len(all_words) + 1
+
+    text_gen_model = TextGenerationModel(
+        output_size_gen, embedding_dim_gen, hidden_size_gen
+    )
+
+    criterion_gen = nn.CrossEntropyLoss()
+    optimizer_gen = torch.optim.Adam(text_gen_model.parameters(), lr=0.004)
+
+    # Training loop for text generation
+    for epoch in range(150):
+        optimizer_gen.zero_grad()
+        output_gen = text_gen_model(X_gen)
+        loss_gen = criterion_gen(output_gen, y_gen)
+        loss_gen.backward()
+        optimizer_gen.step()
+
+        if (epoch + 1) % 10 == 0:
+            print(f"Epoch [{epoch+1}/150], Loss: {loss_gen.item():.4f}")
+
+    # Save the trained PyTorch text generation model
+    torch.save(text_gen_model.state_dict(), "nwp_pytorch.pth")
+    print("Text generation model trained and saved.")
 
 # Continue with any additional code as needed

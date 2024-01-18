@@ -25,7 +25,7 @@
     {
       "tag": "thanks",
       "patterns": ["Thanks", "Thank you", "That's helpful", "Thank's a lot!"],
-      "responses": ["Happy to help!", "Any time!", "My pleasure"]
+      "responses": ["Happy to help sir!", "Any time sir!", "My pleasure sir!"]
     },
     {
       "tag": "funny",
