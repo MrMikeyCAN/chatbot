@@ -2,7 +2,6 @@ import torch
 import json
 from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
-from utils import text_to_speech
 from torch.nn.utils.rnn import pad_sequence
 from torch.nn.functional import softmax
 
