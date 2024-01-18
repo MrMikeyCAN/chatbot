@@ -1,10 +1,10 @@
 import torch
-import json
-from model import NeuralNet
-from nltk_utils import bag_of_words, tokenize
 from torch.nn.utils.rnn import pad_sequence
 from torch.nn.functional import softmax
+from model import NeuralNet
+from nltk_utils import bag_of_words, tokenize
 from utils import text_to_speech
+import json
 
 
 class YourTextGenerationModel(torch.nn.Module):
@@ -20,7 +20,9 @@ class YourTextGenerationModel(torch.nn.Module):
         output = self.fc(lstm_out)
         return output
 
-    def generate_text(self, start_sequence, max_length=50, all_words=None, device=None):
+    def generate_text(
+        self, start_sequence, max_length=1000, all_words=None, device=None
+    ):
         generated_sequence = start_sequence.clone()
 
         for _ in range(max_length):
@@ -47,15 +49,16 @@ class YourTextGenerationModel(torch.nn.Module):
             else:
                 break  # Break if the input sequence is empty
 
-        generated_sequence = [str(word) for word in generated_sequence if str(word) != '0.0']
-        
+        generated_sequence = [str(word) for word in generated_sequence]
+        generated_sequence = list(filter(lambda x: x != "0", generated_sequence))
+
         return " ".join(generated_sequence)
 
 
 class Chatbot:
     def __init__(self, config):
         cuda_available = torch.cuda.is_available() and config.get("device", "cuda")
-        self.device = torch.device("cuda" if cuda_available else "cpu")
+        self.device = torch.device(config.get("device", "cuda"))
         self.all_words = None
         self.tags = None
         self.intents = None  # Add this line
@@ -69,7 +72,9 @@ class Chatbot:
         output_size = data["output_size"]
         self.all_words = data["all_words"]
         self.tags = data["tags"]
-        self.intents = data.get("intents", {})  # Handle missing 'intents' key
+
+        with open("intents.json") as file:
+            self.intents = json.load(file).get("intents", [])
 
         model_state = data["model_state"]
 
@@ -107,13 +112,14 @@ class Chatbot:
         print(f"Tag: {tag}, Probability: {prob.item()}")
 
         if prob.item() > 0.85:
-            for intent in self.intents.get("intents", []):
+            for intent in self.intents:
                 if tag == intent.get("tag"):
                     generated_response = self.text_gen_model.generate_text(
                         start_sequence, all_words=self.all_words, device=self.device
                     )
                     print(f"Generated Response: {generated_response}")
                     text_to_speech(bot_name=self.bot_name, text=generated_response)
+                    return
         else:
             start_sequence = self.process_input(input_text)  # Use the processed input
             generated_response = self.text_gen_model.generate_text(
@@ -121,7 +127,6 @@ class Chatbot:
             )
             print(f"Generated Response: {generated_response}")
             text_to_speech(bot_name=self.bot_name, text=generated_response)
-
 
     def run(self):
         start_sequence = []
