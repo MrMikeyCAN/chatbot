@@ -5,6 +5,12 @@ import random
 from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
 from utils import text_to_spech
+from pygame import mixer
+
+### Ses çalma ayarları
+sound_path = "sound.mp3"
+mixer.init()
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -52,6 +58,9 @@ while True:
 
     if tag == "goodbye":
         text_to_spech("I am waiting for your orders sir!")
+        sound = mixer.Sound(sound_path)
+        sound.set_volume(0.7)
+        sound.play()
         break
 
     probs = torch.softmax(output, dim=1)
