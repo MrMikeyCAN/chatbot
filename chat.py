@@ -4,15 +4,16 @@ import torch
 import random
 from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
-from utils import text_to_spech
+from utils import text_to_speech
 from pygame import mixer
 
 ### Ses çalma ayarları
-sound_path = "sound.waw"
+sound_path = "sound.mp3"
 mixer.init()
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
 with open("intents.json", "r+") as json_data:
     intents = json.load(json_data)
@@ -57,11 +58,7 @@ while True:
     tag = tags[predicted.item()]
 
     if tag == "goodbye":
-        text_to_spech(text="I am waiting for your orders sir!", bot_name=bot_name)
-        mixer.music.load(sound_path)
-        mixer.music.play()
-        while mixer.music.get_busy():
-            continue
+        text_to_speech(bot_name=bot_name, text="I am waiting for your orders sir!")
         break
 
     probs = torch.softmax(output, dim=1)
@@ -72,11 +69,7 @@ while True:
                 response = random.choice(intent["responses"])
                 intent["patterns"].append(sentence)
                 intent["responses"].append(response)
-                text_to_spech(bot_name=bot_name, text=response)
-                mixer.music.load(sound_path)
-                mixer.music.play()
-                while mixer.music.get_busy():
-                    continue
+                text_to_speech(bot_name=bot_name, text=response)
 
     else:
         print(f"{bot_name}: I do not understand...")
