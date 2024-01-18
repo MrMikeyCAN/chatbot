@@ -61,6 +61,8 @@ while True:
         sound = mixer.Sound(sound_path)
         sound.set_volume(0.7)
         sound.play()
+        mixer.quit()
+        print("I am waiting for your orders sir!")
         break
 
     probs = torch.softmax(output, dim=1)
