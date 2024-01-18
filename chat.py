@@ -20,7 +20,7 @@ class YourTextGenerationModel(torch.nn.Module):
         return output
 
     def generate_text(self, start_sequence, max_length=50, all_words=None, device=None):
-        generated_sequence = start_sequence.copy()
+        generated_sequence = start_sequence.copy_()
 
         for _ in range(max_length):
             input_sequence = torch.LongTensor(
