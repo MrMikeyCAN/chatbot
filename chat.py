@@ -4,14 +4,12 @@ import torch
 from model import NeuralNet
 from nltk_utils import bag_of_words, tokenize
 from utils import text_to_speech
-from pygame import mixer
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 from torch.nn.functional import softmax
 
 sound_path = "sound.mp3"
-mixer.init()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
@@ -35,7 +33,6 @@ model.eval()
 
 bot_name = "Jarvis"
 
-
 class YourTextGenerationModel(torch.nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_size):
         super(YourTextGenerationModel, self).__init__()
@@ -53,10 +50,11 @@ class YourTextGenerationModel(torch.nn.Module):
         generated_sequence = start_sequence.copy()
 
         for _ in range(max_length):
-            input_sequence = torch.LongTensor([all_words.index(word) for word in generated_sequence])
+            input_sequence = torch.LongTensor([all_words.index(word) for word in generated_sequence if word in all_words])
             
             if len(input_sequence) > 0:  # Check if the sequence is not empty
                 input_sequence_padded = pad_sequence([input_sequence], batch_first=True, padding_value=0)
+                input_sequence_padded = input_sequence_padded.to(device)
                 prediction = self.forward(input_sequence_padded)
                 predicted_word_index = torch.argmax(prediction, dim=-1).item()
                 predicted_word = all_words[predicted_word_index]
@@ -69,7 +67,6 @@ class YourTextGenerationModel(torch.nn.Module):
 
         return " ".join(generated_sequence)
 
-
 vocab_size = 10000
 embedding_dim = 128
 hidden_size = 256
@@ -78,7 +75,6 @@ text_gen_model = YourTextGenerationModel(vocab_size, embedding_dim, hidden_size)
 
 while True:
     sentence = input("You: ")
-
     tokenized_sentence = tokenize(sentence)
     X = bag_of_words(tokenized_sentence, all_words)
     X = X.reshape(1, X.shape[0])
@@ -100,16 +96,10 @@ while True:
         for intent in intents["intents"]:
             if tag == intent["tag"]:
                 response = random.choice(intent["responses"])
-                intent["patterns"].append(sentence)
-                intent["responses"].append(response)
-                print(prob.item())
-                text_to_speech(bot_name=bot_name, text=response)
-
+                print(f"{bot_name}: {response}")
+                text_to_speech(bot_name=bot_name,text=response)
     else:
         start_sequence = tokenized_sentence.copy()
         generated_response = text_gen_model.generate_text(start_sequence)
-        text_to_speech(
-            bot_name=bot_name,
-            text="I don't understand sir sorry. However, I can generate text: "
-            + generated_response,
-        )
+        print(f"{bot_name}: I don't understand, but here's something interesting: {generated_response}")
+        text_to_speech(bot_name=bot_name,text="I don't understand, but here's something interesting: " + generated_response)
