@@ -43,7 +43,7 @@ X_train = np.array(X_train)
 y_train = np.array(y_train)
 
 # Hyperparameters
-num_epochs = 1000
+num_epochs = 300
 batch_size = 8
 learning_rate = 0.001
 input_size = len(X_train[0])

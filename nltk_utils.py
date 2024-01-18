@@ -6,7 +6,6 @@ import nltk
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 import nltk
-from nltk.probability import FreqDist
 from nltk import bigrams
 from nltk import ConditionalFreqDist
 
