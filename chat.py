@@ -1,146 +1,96 @@
-import torch
+import random
 import json
-from model import NeuralNet
-from nltk_utils import bag_of_words, tokenize
-from torch.nn.utils.rnn import pad_sequence
-from torch.nn.functional import softmax
-from utils import text_to_speech
+import torch
+from model import NeuralNet  # model.py'de tanımlı NeuralNet sınıfınızı kullanın
+from nltk_utils import tokenize, bag_of_words  # nltk_utils.py'de tanımlı fonksiyonlarınızı kullanın
 
-# Metin üretme modeli sınıfı
-class YourTextGenerationModel(torch.nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_size):
-        super(YourTextGenerationModel, self).__init__()
-        self.embedding = torch.nn.Embedding(vocab_size, embedding_dim)
-        self.lstm = torch.nn.LSTM(embedding_dim, hidden_size, batch_first=True)
-        self.fc = torch.nn.Linear(hidden_size, vocab_size)
-
-    def forward(self, x):
-        embedded = self.embedding(x)
-        lstm_out, _ = self.lstm(embedded)
-        output = self.fc(lstm_out)
-        return output
-
-    def generate_text(self, start_sequence, max_length=1000, all_words=None, device=None):
-        generated_sequence = start_sequence.clone()  # Giriş dizisinin bir kopyasını oluştur
-
-        for _ in range(max_length):
-            input_sequence = torch.LongTensor(
-                [
-                    start_sequence.tolist().index(word)
-                    for word in generated_sequence
-                    if word in start_sequence.tolist()
-                ]
-            )
-
-            if len(input_sequence) > 0:  # Dizi boş değilse
-                input_sequence_padded = pad_sequence(
-                    [input_sequence], batch_first=True, padding_value=0
-                )
-                input_sequence_padded = input_sequence_padded.to(device)
-                prediction = self.forward(input_sequence_padded)
-                predicted_word_index = torch.argmax(prediction, dim=-1).item()
-                predicted_word = all_words[predicted_word_index]
-                generated_sequence.append(predicted_word)
-
-                if predicted_word == "<EOS>":
-                    break
-            else:
-                break  # Giriş dizisi boşsa döngüden çık
-
-        generated_sequence = [str(word) for word in generated_sequence]
-        generated_sequence = list(filter(lambda x: x != "0", generated_sequence))
-
-        return " ".join(generated_sequence)
-
-# Sohbetbot sınıfı
 class Chatbot:
-    def __init__(self, config):
-        cuda_available = torch.cuda.is_available() and config.get("device", "cuda")
-        self.device = torch.device(config.get("device", "cuda"))
-        self.all_words = None
-        self.tags = None
-        self.intents = None
-        self.load_model(config["model_file"])
-        self.bot_name = config.get("bot_name", "Jarvis")
+    def __init__(self, model, all_words, tags, intents):
+        self.model = model
+        self.all_words = all_words
+        self.tags = tags
+        self.intents = intents
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model.to(self.device)
 
-    def load_model(self, model_file):
-        data = torch.load(model_file)
-        input_size = data["input_size"]
-        hidden_size = data["hidden_size"]
-        output_size = data["output_size"]
-        self.all_words = data["all_words"]
-        self.tags = data["tags"]
-
-        with open("intents.json") as file:
-            self.intents = json.load(file).get("intents", [])
-
-        model_state = data["model_state"]
-
-        self.model = NeuralNet(input_size, hidden_size, output_size).to(self.device)
-        self.model.load_state_dict(model_state)
-        self.model.eval()
-
-        self.text_gen_model = YourTextGenerationModel(
-            config.get("vocab_size", 10000),
-            config.get("embedding_dim", 128),
-            config.get("hidden_size", 256),
-        ).to(self.device)
-
-    def process_input(self, user_input):
-        tokenized_sentence = tokenize(user_input)
-        X = bag_of_words(tokenized_sentence, self.all_words)
+    def predict_class(self, sentence):
+        # Cümleyi işleyin
+        sentence = tokenize(sentence)
+        X = bag_of_words(sentence, self.all_words)
         X = X.reshape(1, X.shape[0])
-        return torch.from_numpy(X).to(self.device)
+        X = torch.from_numpy(X).to(self.device)  # Girdiyi modelin cihazına taşıyın
 
-    def generate_response(self, input_tensor, start_sequence, input_text):
-        output = self.model(input_tensor)
+        # Tahmin yapın
+        output = self.model(X)
         _, predicted = torch.max(output, dim=1)
-
         tag = self.tags[predicted.item()]
-
-        if tag == "goodbye":
-            text_to_speech(
-                bot_name=self.bot_name, text="I am waiting for your orders sir!"
-            )
-            exit()
-
-        probs = softmax(output, dim=1)
+        probs = torch.softmax(output, dim=1)
         prob = probs[0][predicted.item()]
 
-        print(f"Tag: {tag}, Probability: {prob.item()}")
+        return tag, prob
 
-        if prob.item() > 0.85:
-            for intent in self.intents:
-                if tag == intent.get("tag"):
-                    generated_response = self.text_gen_model.generate_text(
-                        start_sequence, all_words=self.all_words, device=self.device
-                    )
-                    print(f"Generated Response: {generated_response}")
-                    text_to_speech(bot_name=self.bot_name, text=generated_response)
-                    return
+    def get_response(self, tag):
+        for intent in self.intents['intents']:
+            if tag == intent['tag']:
+                return random.choice(intent['responses'])
+        return "Anlayamadım, başka bir şey sorabilir misiniz?"
+    def generate_text(self, prompt, max_length=50):
+        """
+        Basit bir metin üretimi yapar. Bu metot, verilen bir başlangıç metnine dayanarak yeni metin üretir.
+        """
+        # Prompt'u tokenize et ve bag of words'e dönüştür
+        prompt_tokens = tokenize(prompt)
+        prompt_bow = bag_of_words(prompt_tokens, self.all_words).reshape(1, -1).to(self.device)
+
+        # Metin üretme modelini kullanarak metin üret
+        generated_words = []
+        for _ in range(max_length):
+            with torch.no_grad():
+                output = self.text_gen_model(prompt_bow)
+            _, predicted = torch.max(output, dim=1)
+            predicted_word = self.all_words[predicted.item()]
+            generated_words.append(predicted_word)
+
+            # Yeni kelimeyi prompt'a ekle ve tekrar bag of words'e dönüştür
+            prompt += " " + predicted_word
+            prompt_tokens = tokenize(prompt)
+            prompt_bow = bag_of_words(prompt_tokens, self.all_words).reshape(1, -1).to(self.device)
+
+        return ' '.join(generated_words)
+
+    def chat(self, user_input):
+        tag, prob = self.predict_class(user_input)
+        if prob > 0.75:
+            return self.get_response(tag)
         else:
-            start_sequence = self.process_input(input_text)  # İşlenmiş girişi kullan
-            generated_response = self.text_gen_model.generate_text(
-                start_sequence, all_words=self.all_words, device=self.device
-            )
-            print(f"Generated Response: {generated_response}")
-            text_to_speech(bot_name=self.bot_name, text=generated_response)
-
-    def run(self):
-        start_sequence = []
-        while True:
-            user_input = input("You: ")
-            input_tensor = self.process_input(user_input)
-            self.generate_response(input_tensor, start_sequence, user_input)
-
+            return "Anlayamadım, başka bir şey sorabilir misiniz?"
 
 if __name__ == "__main__":
-    config = {
-        "model_file": "data.pth",
-        "vocab_size": 10000,
-        "embedding_dim": 128,
-        "hidden_size": 256,
-        "device": "cuda",  # İhtiyaca göre ayarlayın
-    }
-    chatbot = Chatbot(config)
-    chatbot.run()
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Model ve eğitim verilerini yükleyin
+    data = torch.load("data.pth")
+    input_size = data["input_size"]
+    hidden_size = data["hidden_size"]
+    output_size = data["output_size"]
+    all_words = data['all_words']
+    tags = data['tags']
+    model_state = data["model_state"]
+
+    model = NeuralNet(input_size, hidden_size, output_size).to(device)
+    model.load_state_dict(model_state)
+    model.eval()
+
+    intents = json.load(open('intents.json', 'r'))
+    chatbot = Chatbot(model, all_words, tags, intents)
+
+    # Chatbot ile konuşma
+    print("Chatbot'a hoş geldiniz! (çıkmak için 'çıkış' yazın)")
+    while True:
+        message = input("Sen: ")
+        if message.lower() == "exit":
+            break
+        response = chatbot.chat(message)
+        generated_text = chatbot.generate_text(message)
+        print(f"Chatbot: {response}")
+        print(f"Generated Text: {generated_text}")
