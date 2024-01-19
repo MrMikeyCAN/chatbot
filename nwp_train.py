@@ -48,21 +48,19 @@ model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accur
 model.fit(X, y, epochs=100, verbose=1)
 
 
-def nwp(input_text: str, predict_next_words: int) -> str:
-    for _ in range(predict_next_words):
-        token_list = mytokenizer.texts_to_sequences([input_text])[0]
-        print(token_list)
-        token_list = pad_sequences(
-            [token_list], maxlen=max_sequence_len - 1, padding="pre"
-        )
-        predicted = np.argmax(model.predict(token_list), axis=-1)
-        output_word = ""
-        for word, index in mytokenizer.word_index.items():
-            if index == predicted:
-                output_word = word
-                break
-        input_text += " " + output_word
-        return input_text
+input_text = "Joe biden"
+predict_next_words= 6
 
+for _ in range(predict_next_words):
+    token_list = mytokenizer.texts_to_sequences([input_text])[0]
+    print(token_list)
+    token_list = pad_sequences([token_list], maxlen=max_sequence_len-1, padding='pre')
+    predicted = np.argmax(model.predict(token_list), axis=-1)
+    output_word = ""
+    for word, index in mytokenizer.word_index.items():
+        if index == predicted:
+            output_word = word
+            break
+    input_text += " " + output_word
 
-print(nwp("Hello sir", 10))
+print(input_text)
