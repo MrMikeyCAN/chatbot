@@ -4,31 +4,21 @@ import nltk
 from nltk.corpus import stopwords
 import nltk
 from nltk.tokenize import word_tokenize
-from nltk.stem import WordNetLemmatizer
 import nltk
-from nltk import bigrams
-from nltk import ConditionalFreqDist
-
+from nltk.stem import WordNetLemmatizer
 
 lemmatizer = WordNetLemmatizer()
+
 
 nltk.download("stopwords")
-
 nltk.download("punkt")
 nltk.download("wordnet")
-from nltk.stem import WordNetLemmatizer
-
-lemmatizer = WordNetLemmatizer()
 
 
-def tokenize(sentence):
+def tokenize(word):
     stop_words = set(stopwords.words("english"))
-    words = word_tokenize(sentence)
-    tokens = [
-        word.lower()
-        for word in words
-        if word.isalnum() and word.lower() not in stop_words
-    ]
+    words = word_tokenize(word)
+    tokens = [word.lower() for word in words if word.lower() not in stop_words]
     return tokens
 
 
@@ -59,26 +49,3 @@ def bag_of_words(tokenized_sentence, words):
             bag[idx] = 1
 
     return bag
-
-
-# Sample text for demonstration purposes
-
-
-
-# Tokenization logic
-
-
-def tokenize_text(text):
-    tokens = word_tokenize(text.lower())  # Convert to lowercase for case-insensitivity
-    return tokens
-
-
-# Initialization logic
-def initialize_ngram_model(tokens, n=2):
-    ngrams = list(
-        bigrams(tokens)
-    )  # Using bigrams for simplicity, you can adjust n for higher order n-grams
-    cfd = ConditionalFreqDist((ngram[:-1], ngram[-1]) for ngram in ngrams)
-    return cfd
-
-

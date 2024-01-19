@@ -7,7 +7,7 @@ import torchtext
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load the text data
-with open("data.txt", "r", encoding="utf-8") as myfile:
+with open("Tweets.csv", "r", encoding="utf-8") as myfile:
     mytext = myfile.read()
 
 # Tokenization using PyTorch

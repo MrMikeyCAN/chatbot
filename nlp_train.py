@@ -1,83 +1,83 @@
-import numpy as np
-import json
+import pandas as pd
+from nltk_utils import lemma, tokenize
+from sklearn.model_selection import train_test_split
+from torch.utils.data import Dataset, DataLoader
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
-from nltk_utils import tokenize, lemma, bag_of_words
 from model import NeuralNet
+from utils import build_vocab, text_to_indices, ignore_words
 
-# Load intents from JSON file
-with open('intents.json', 'r') as f:
-    intents = json.load(f)
+texts = pd.read_csv("Tweets.csv")
 
-# Collect words and tags
-all_words = []
-tags = []
-xy = []
+### * Data preprocessing
+X = texts.iloc[:, 1].values
+y = texts.iloc[:, -1].values
 
-# Iterate over intents
-for intent in intents['intents']:
-    tag = intent['tag']
-    tags.append(tag)
-    for pattern in intent['patterns']:
-        w = tokenize(pattern)
-        all_words.extend(w)
-        xy.append((w, tag))
+## * Lemma and tokenize
+X_tokenized = [tokenize(text) for text in X if isinstance(text, str)]
 
-# Stemming and convert to lowercase
-ignore_words = ['?', '.', '!']
-all_words = [lemma(w) for w in all_words if w not in ignore_words]
+
+all_words = [
+    lemma(w)
+    for text_tokens in X_tokenized
+    for w in text_tokens
+    if w not in ignore_words
+]
+
 all_words = sorted(set(all_words))
-tags = sorted(set(tags))
 
-# Prepare training data
-X_train = []
-y_train = []
-for (pattern_sentence, tag) in xy:
-    bag = bag_of_words(pattern_sentence, all_words)
-    X_train.append(bag)
+### * Training the SENTENCES
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
 
-    label = tags.index(tag)
-    y_train.append(label)
-
-X_train = np.array(X_train)
-y_train = np.array(y_train)
-
-# Hyperparameters
-num_epochs = 300
+### * Settings
+epochs = 500
 batch_size = 8
-learning_rate = 0.001
-input_size = len(X_train[0])
+learning_rate = 0.01
 hidden_size = 8
-output_size = len(tags)
+input_size = len(
+    all_words
+)  # Modified this line to use the total number of unique words
+output_size = 1
 
-# Dataset class
+
+### ! Pytorch model
 class ChatDataset(Dataset):
-    def __init__(self, X, y):
-        self.n_samples = len(X)
-        self.x_data = X
-        self.y_data = y
+    def __init__(self, X_indices, y_data):
+        self.n_samples = len(X_indices)
+        self.x_data = X_indices
+        self.y_data = y_data
 
     def __getitem__(self, index):
-        return self.x_data[index], self.y_data[index]
+        return torch.tensor(self.x_data[index]), torch.tensor(self.y_data[index])
 
     def __len__(self):
         return self.n_samples
 
-dataset = ChatDataset(X_train, y_train)
-train_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
 
-# Model definition and setup
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+vocab = build_vocab(X_tokenized)
+
+
+# Convert texts to indices using the vocabulary
+X_indices = [text_to_indices(text, vocab) for text in X if isinstance(text, str)]
+
+
+dataset = ChatDataset(X_indices, y)
+train_loader = DataLoader(
+    dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=0
+)
+
+### ! Device Selection
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 model = NeuralNet(input_size, hidden_size, output_size).to(device)
 
-# Loss function and optimizer
+### ! Loss and optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-# Training loop
-for epoch in range(num_epochs):
-    for (words, labels) in train_loader:
+# Train the model
+for epoch in range(epochs):
+    for words, labels in train_loader:
         words = words.to(device)
         labels = labels.to(dtype=torch.long).to(device)
 
@@ -90,22 +90,11 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-    if (epoch+1) % 100 == 0:
-        print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
+        if (epoch + 1) % 100 == 0:
+            print(f"Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}")
 
-print(f'Final Loss: {loss.item():.4f}')
+print(f"final loss: {loss.item():.4f}")
 
-# Save model and training data
-data = {
-    "model_state": model.state_dict(),
-    "input_size": input_size,
-    "hidden_size": hidden_size,
-    "output_size": output_size,
-    "all_words": all_words,
-    "tags": tags
-}
-
-FILE = "data.pth"
-torch.save(data, FILE)
-
-print(f'Training complete. File saved to {FILE}')
+FILE = "nlp.pth"
+torch.save(model.state_dict(), FILE)
+print(f"training complete. file saved to {FILE}")
