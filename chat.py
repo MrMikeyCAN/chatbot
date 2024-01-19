@@ -37,11 +37,13 @@ class Chatbot:
                 text_to_speech(
                     bot_name=self.name, text=nwp("I am waiting for your orders sir!", 5)
                 )
-                return "Goodbye!"  # Add a return statement to exit the loop in the main code
+                return (
+                    "exit"  # Add a return statement to exit the loop in the main code
+                )
             if tag == intent["tag"]:
                 response = random.choice(intent["responses"])
                 if response:
-                    return text_to_speech(bot_name=self.name, text=nwp(response, 10))
+                    return text_to_speech(bot_name=self.name, text=nwp(response, 20))
                 else:
                     return text_to_speech(
                         bot_name=self.name,
@@ -107,10 +109,8 @@ if __name__ == "__main__":
     intents = json.load(open("intents.json", "r"))
     chatbot = Chatbot(model, all_words, tags, intents)
 
-    print("Chatbot'a hoş geldiniz! (çıkmak için 'çıkış' yazın)")
     while True:
-        message = input("Sen: ")
-        if message.lower() == "çıkış":  # Change "exit" to "çıkış"
-            break
+        message = input("You: ")
         response = chatbot.chat(message)
-        print(f"Chatbot: {response}")
+        if (response) == "exit":
+            break

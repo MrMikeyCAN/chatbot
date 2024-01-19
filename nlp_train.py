@@ -3,19 +3,19 @@ import json
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
-from nltk_utils import tokenize, lemma, bag_of_words  # Bu fonksiyonların tanımlandığından emin olun
-from model import NeuralNet  # Model sınıfınızın tanımlandığından emin olun
+from nltk_utils import tokenize, lemma, bag_of_words
+from model import NeuralNet
 
-# intents.json dosyasını yükleyin
+# Load intents from JSON file
 with open('intents.json', 'r') as f:
     intents = json.load(f)
 
-# Kelimeleri ve etiketleri toplama
+# Collect words and tags
 all_words = []
 tags = []
 xy = []
 
-# Her intent için döngü
+# Iterate over intents
 for intent in intents['intents']:
     tag = intent['tag']
     tags.append(tag)
@@ -24,13 +24,13 @@ for intent in intents['intents']:
         all_words.extend(w)
         xy.append((w, tag))
 
-# Stemming ve küçük harfe dönüştürme
+# Stemming and convert to lowercase
 ignore_words = ['?', '.', '!']
 all_words = [lemma(w) for w in all_words if w not in ignore_words]
 all_words = sorted(set(all_words))
 tags = sorted(set(tags))
 
-# Eğitim verilerini hazırlama
+# Prepare training data
 X_train = []
 y_train = []
 for (pattern_sentence, tag) in xy:
@@ -43,15 +43,15 @@ for (pattern_sentence, tag) in xy:
 X_train = np.array(X_train)
 y_train = np.array(y_train)
 
-# Hiperparametreler
-num_epochs = 1000
+# Hyperparameters
+num_epochs = 300
 batch_size = 8
 learning_rate = 0.001
 input_size = len(X_train[0])
 hidden_size = 8
 output_size = len(tags)
 
-# Dataset sınıfı
+# Dataset class
 class ChatDataset(Dataset):
     def __init__(self, X, y):
         self.n_samples = len(X)
@@ -67,15 +67,15 @@ class ChatDataset(Dataset):
 dataset = ChatDataset(X_train, y_train)
 train_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
 
-# Modeli tanımlama ve ayarlama
+# Model definition and setup
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = NeuralNet(input_size, hidden_size, output_size).to(device)
 
-# Kayıp fonksiyonu ve optimizasyon
+# Loss function and optimizer
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-# Eğitim döngüsü
+# Training loop
 for epoch in range(num_epochs):
     for (words, labels) in train_loader:
         words = words.to(device)
@@ -85,17 +85,17 @@ for epoch in range(num_epochs):
         outputs = model(words)
         loss = criterion(outputs, labels)
 
-        # Backward ve optimize
+        # Backward and optimize
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        
+
     if (epoch+1) % 100 == 0:
         print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item():.4f}')
 
 print(f'Final Loss: {loss.item():.4f}')
 
-# Modeli ve eğitim verilerini kaydetme
+# Save model and training data
 data = {
     "model_state": model.state_dict(),
     "input_size": input_size,
