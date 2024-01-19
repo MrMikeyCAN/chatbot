@@ -4,6 +4,8 @@ import torch
 from model import NeuralNet  # Use your NeuralNet class defined in model.py
 from nltk_utils import tokenize, bag_of_words  # Use your functions from nltk_utils.py
 from utils import text_to_speech
+from nwp_train_pytorch import nwp
+
 
 class Chatbot:
     def __init__(self, model, all_words, tags, intents):
@@ -32,34 +34,50 @@ class Chatbot:
     def get_response(self, tag):
         for intent in self.intents["intents"]:
             if tag == "goodbye":
-                text_to_speech(bot_name=self.name, text="I am waiting for your orders sir!")
+                text_to_speech(
+                    bot_name=self.name, text=nwp("I am waiting for your orders sir!", 5)
+                )
                 return "Goodbye!"  # Add a return statement to exit the loop in the main code
             if tag == intent["tag"]:
-                responses = intent.get("responses", [])  # Use get method to handle missing key
-                if responses:
-                    return text_to_speech(bot_name=self.name, text=random.choice(responses))
+                response = random.choice(intent["responses"])
+                if response:
+                    return text_to_speech(bot_name=self.name, text=nwp(response, 10))
                 else:
-                    return text_to_speech(bot_name=self.name, text="I'm sorry, I don't have a response for that.")
-        return text_to_speech(bot_name=self.name, text="I don't understand, can you ask something else?")
+                    return text_to_speech(
+                        bot_name=self.name,
+                        text="I'm sorry, I don't have a response for that.",
+                    )
+        return text_to_speech(
+            bot_name=self.name, text="I don't understand, can you ask something else?"
+        )
 
-    def generate_text(self, prompt, max_length=50, temperature=1.0):
+    def generate_text(self, prompt, max_length=50):
+        """
+        Basit bir metin üretimi yapar. Bu metot, verilen bir başlangıç metnine dayanarak yeni metin üretir.
+        """
+        # Prompt'u tokenize et ve bag of words'e dönüştür
         prompt_tokens = tokenize(prompt)
-        prompt_bow = bag_of_words(prompt_tokens, self.all_words).reshape(1, -1)
-        prompt_bow = torch.tensor(prompt_bow, dtype=torch.float32).to(self.device)
+        prompt_bow = (
+            bag_of_words(prompt_tokens, self.all_words).reshape(1, -1).to(self.device)
+        )
 
+        # Metin üretme modelini kullanarak metin üret
         generated_words = []
         for _ in range(max_length):
             with torch.no_grad():
-                output = self.model(prompt_bow)
-            probabilities = torch.softmax(output / temperature, dim=1)
-            predicted_word_idx = torch.multinomial(probabilities, 1).item()
-            predicted_word = self.all_words[predicted_word_idx]
+                output = self.text_gen_model(prompt_bow)
+            _, predicted = torch.max(output, dim=1)
+            predicted_word = self.all_words[predicted.item()]
             generated_words.append(predicted_word)
 
+            # Yeni kelimeyi prompt'a ekle ve tekrar bag of words'e dönüştür
             prompt += " " + predicted_word
             prompt_tokens = tokenize(prompt)
-            prompt_bow = bag_of_words(prompt_tokens, self.all_words).reshape(1, -1)
-            prompt_bow = torch.tensor(prompt_bow, dtype=torch.float32).to(self.device)
+            prompt_bow = (
+                bag_of_words(prompt_tokens, self.all_words)
+                .reshape(1, -1)
+                .to(self.device)
+            )
 
         return " ".join(generated_words)
 
@@ -69,6 +87,7 @@ class Chatbot:
             return self.get_response(tag)
         else:
             return text_to_speech(bot_name=self.name, text="I didn't understand.")
+
 
 if __name__ == "__main__":
     data = torch.load("data.pth")
@@ -94,6 +113,4 @@ if __name__ == "__main__":
         if message.lower() == "çıkış":  # Change "exit" to "çıkış"
             break
         response = chatbot.chat(message)
-        generated_text = chatbot.generate_text(message, temperature=0.7)  # Adjust temperature if needed
         print(f"Chatbot: {response}")
-        print(f"Generated Text: {generated_text}")

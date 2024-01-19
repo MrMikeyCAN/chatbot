@@ -62,7 +62,7 @@ def bag_of_words(tokenized_sentence, words):
 
 
 # Sample text for demonstration purposes
-sample_text = "This is a sample sentence. Tokenization is a crucial step in natural language processing."
+
 
 
 # Tokenization logic
@@ -82,12 +82,3 @@ def initialize_ngram_model(tokens, n=2):
     return cfd
 
 
-# Example usage
-tokens = tokenize_text(sample_text)
-ngram_model = initialize_ngram_model(tokens)
-
-# Now, you can use ngram_model to predict the next word based on the context.
-# For example, if you want to predict the next word after "sample", you can do:
-context = ("sample",)
-predicted_next_word = ngram_model[context].max()
-print(f"Predicted next word: {predicted_next_word}")

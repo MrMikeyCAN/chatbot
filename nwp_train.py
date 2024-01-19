@@ -5,7 +5,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, LSTM, Dense
 
-with open("text.txt", "r", encoding="utf-8") as myfile:
+with open("data.txt", "r", encoding="utf-8") as myfile:
     mytext = myfile.read()
 
 
