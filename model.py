@@ -1,39 +1,38 @@
 import torch.nn as nn
 import torch
 
-class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size, num_classes):
-        super(LSTMModel, self).__init__()
 
-        # Use an LSTM layer instead of linear layers
-        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
+
+class ImprovedLSTMModel(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, num_classes, num_layers=1, dropout_rate=0.0):
+        super(ImprovedLSTMModel, self).__init__()
+
+        # Use bidirectional LSTM layer
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout_rate, bidirectional=True)
+
+        # Batch Normalization for stability and faster convergence
+        self.batch_norm = nn.BatchNorm1d(hidden_size * 2)
+
+        # Dropout layer for regularization
+        self.dropout = nn.Dropout(dropout_rate)
 
         # Fully connected layer
-        self.fc = nn.Linear(hidden_size, num_classes)
-
-        # ReLU activation
-        self.relu = nn.ReLU()
+        self.fc = nn.Linear(hidden_size * 2, num_classes)
 
     def forward(self, x):
-        # Initialize hidden state with zeros
-        # Make sure h0 and c0 are 2-D tensors
-        h0 = torch.zeros(x.size(0), self.lstm.hidden_size).to(x.device)
-        c0 = torch.zeros(x.size(0), self.lstm.hidden_size).to(x.device)
-
-        # Expand dimensions for batch_first=True
-        h0 = h0.unsqueeze(0)
-        c0 = c0.unsqueeze(0)
-
         # Forward propagate LSTM
-        out, _ = self.lstm(x, (h0, c0))
+        out, _ = self.lstm(x)
 
         # Take the output from the last time step
         out = out[:, -1, :]
 
-        # Fully connected layer
-        out = self.fc(out)
+        # Batch Normalization
+        out = self.batch_norm(out)
 
-        # ReLU activation
-        out = self.relu(out)
+        # Dropout for regularization
+        out = self.dropout(out)
+
+        # Fully connected layer (no ReLU activation)
+        out = self.fc(out)
 
         return out
