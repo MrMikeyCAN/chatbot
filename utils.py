@@ -62,11 +62,14 @@ def text_to_speech(bot_name: str, text: str, lang="en"):
 
 class LanguageIndexMapper:
     def __init__(self, labels):
+        # Initialize the label-to-index and index-to-label mapping
         self.label_to_index = {label: idx for idx, label in enumerate(set(labels))}
         self.index_to_label = {idx: label for label, idx in self.label_to_index.items()}
 
     def label_to_index_func(self, label):
+        # Convert label to index
         return self.label_to_index[label]
 
     def index_to_label_func(self, index):
+        # Convert index to label
         return self.index_to_label[index]

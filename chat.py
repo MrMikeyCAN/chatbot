@@ -1,116 +1,50 @@
-import random
-import json
 import torch
-from model import NeuralNet  # Use your NeuralNet class defined in model.py
-from nltk_utils import tokenize, bag_of_words  # Use your functions from nltk_utils.py
-from utils import text_to_speech
-from nwp_train_pytorch import nwp
+from torch.nn.utils.rnn import pad_sequence
+from utils import tokenize, LanguageIndexMapper,text_to_speech
+from model import LSTMModel
 
+# Load the trained model
+FILE = "data.pth"
+checkpoint = torch.load(FILE)
 
-class Chatbot:
-    def __init__(self, model, all_words, tags, intents):
-        self.model = model
-        self.all_words = all_words
-        self.tags = tags
-        self.intents = intents
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model.to(self.device)
-        self.name = "Jarvis"
+input_size = checkpoint["input_size"]
+hidden_size = checkpoint["hidden_size"]
+output_size = checkpoint["output_size"]
 
-    def predict_class(self, sentence):
-        sentence = tokenize(sentence)
-        X = bag_of_words(sentence, self.all_words)
-        X = X.reshape(1, X.shape[0])
-        X = torch.from_numpy(X).to(self.device)
+model = LSTMModel(input_size, hidden_size, output_size)
+model.load_state_dict(checkpoint["model_state"])
+model.eval()
 
-        output = self.model(X)
-        _, predicted = torch.max(output, dim=1)
-        tag = self.tags[predicted.item()]
-        probs = torch.softmax(output, dim=1)
-        prob = probs[0][predicted.item()]
+# Load the language labels used during training
+all_example_sentence = checkpoint["all_example_sentence"]
+languages = checkpoint["languages"]
 
-        return tag, prob
+# Create an instance of LanguageIndexMapper
+label_mapper = LanguageIndexMapper(languages)
 
-    def get_response(self, tag):
-        for intent in self.intents["intents"]:
-            if tag == "goodbye":
-                text_to_speech(
-                    bot_name=self.name, text=nwp("I am waiting for your orders sir!", 5)
-                )
-                return (
-                    "exit"  # Add a return statement to exit the loop in the main code
-                )
-            if tag == intent["tag"]:
-                response = random.choice(intent["responses"])
-                if response:
-                    return text_to_speech(bot_name=self.name, text=nwp(response, 20))
-                else:
-                    return text_to_speech(
-                        bot_name=self.name,
-                        text="I'm sorry, I don't have a response for that.",
-                    )
-        return text_to_speech(
-            bot_name=self.name, text="I don't understand, can you ask something else?"
-        )
-
-    def generate_text(self, prompt, max_length=50):
-        """
-        Basit bir metin üretimi yapar. Bu metot, verilen bir başlangıç metnine dayanarak yeni metin üretir.
-        """
-        # Prompt'u tokenize et ve bag of words'e dönüştür
-        prompt_tokens = tokenize(prompt)
-        prompt_bow = (
-            bag_of_words(prompt_tokens, self.all_words).reshape(1, -1).to(self.device)
-        )
-
-        # Metin üretme modelini kullanarak metin üret
-        generated_words = []
-        for _ in range(max_length):
-            with torch.no_grad():
-                output = self.text_gen_model(prompt_bow)
-            _, predicted = torch.max(output, dim=1)
-            predicted_word = self.all_words[predicted.item()]
-            generated_words.append(predicted_word)
-
-            # Yeni kelimeyi prompt'a ekle ve tekrar bag of words'e dönüştür
-            prompt += " " + predicted_word
-            prompt_tokens = tokenize(prompt)
-            prompt_bow = (
-                bag_of_words(prompt_tokens, self.all_words)
-                .reshape(1, -1)
-                .to(self.device)
-            )
-
-        return " ".join(generated_words)
-
-    def chat(self, user_input):
-        tag, prob = self.predict_class(user_input)
-        if prob > 0.75:
-            return self.get_response(tag)
-        else:
-            return text_to_speech(bot_name=self.name, text="I didn't understand.")
-
-
-if __name__ == "__main__":
-    data = torch.load("data.pth")
-    input_size = data["input_size"]
-    hidden_size = data["hidden_size"]
-    output_size = data["output_size"]
-    all_words = data["all_words"]
-    tags = data["tags"]
-    model_state = data["model_state"]
-
-    model = NeuralNet(input_size, hidden_size, output_size).to(
-        torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    )
-    model.load_state_dict(model_state)
+# Function to predict the language of a sentence
+def predict_language(sentence):
     model.eval()
+    with torch.no_grad():
+        # Tokenize the sentence
+        words = tokenize(sentence)
+        
+        # Pad the sequence and convert to tensor
+        words = pad_sequence([words], batch_first=True, padding_value=0).float()
+        
+        # Make prediction
+        output = model(words)
+        
+        # Get the predicted label index
+        _, predicted_index = torch.max(output, 1)
+        
+        # Map index to language label
+        predicted_language = label_mapper.index_to_label_func(predicted_index.item())
+        
+        return predicted_language
 
-    intents = json.load(open("intents.json", "r"))
-    chatbot = Chatbot(model, all_words, tags, intents)
+# Example usage
+new_sentence = "This is a test sentence."
+predicted_language = predict_language(new_sentence)
 
-    while True:
-        message = input("You: ")
-        response = chatbot.chat(message)
-        if (response) == "exit":
-            break
+text_to_speech(text=f"The predicted language for the sentence '{new_sentence}' is: {predicted_language}",bot_name="Jarvis")
