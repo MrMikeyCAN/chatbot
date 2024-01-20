@@ -1,13 +1,12 @@
 from gtts import gTTS
 from pygame import mixer
 from nltk.corpus import wordnet
+from transformers import AutoTokenizer
+import pandas as pd
 
 mixer.init()
 mixer.music.set_volume(1)
-
-import numpy as np
 import nltk
-from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 
 lemmatizer = WordNetLemmatizer()
@@ -36,30 +35,12 @@ ignore_words = [
     "~",
 ]
 
+tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
 
 def tokenize(text):
-    if isinstance(text, list):
-        return text
-    else:
-        return word_tokenize(text)
+    tokenized_text = tokenizer(text=text,truncation=True, padding='max_length', max_length=42, return_tensors="pt")
+    return tokenized_text["input_ids"]
 
-
-def lemma(word):
-    if isinstance(word, list):
-        return [
-            lemmatizer.lemmatize(w.lower()) for w in word if word not in ignore_words
-        ]
-    else:
-        return lemmatizer.lemmatize(w.lower() for w in word if word not in ignore_words)
-
-
-def bag_of_words(tokenized_sentence, words):
-    sentence_words = [lemma(word) for word in tokenized_sentence]
-    bag = np.zeros(len(words), dtype=np.float32)
-    for idx, w in enumerate(words):
-        if w in sentence_words:
-            bag[idx] = 1
-    return bag
 
 
 def learn_meaning(word: str):
@@ -77,3 +58,15 @@ def text_to_speech(bot_name: str, text: str, lang="en"):
     mixer.music.play()
     while mixer.music.get_busy():
         continue
+
+
+class LanguageIndexMapper:
+    def __init__(self, labels):
+        self.label_to_index = {label: idx for idx, label in enumerate(set(labels))}
+        self.index_to_label = {idx: label for label, idx in self.label_to_index.items()}
+
+    def label_to_index_func(self, label):
+        return self.label_to_index[label]
+
+    def index_to_label_func(self, index):
+        return self.index_to_label[index]
