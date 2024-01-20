@@ -11,5 +11,6 @@ __pycache__/
 *.pth
 *.h5
 /.vscode
-*.csv
+
 *.txt
+test.py
