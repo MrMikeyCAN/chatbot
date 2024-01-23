@@ -12,5 +12,7 @@ __pycache__/
 *.h5
 /.vscode
 *.csv
+*.pkl
 *.txt
+/language_detection_bert/
 test.py
