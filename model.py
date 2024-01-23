@@ -1,39 +1,32 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
 
 class LSTMModel(nn.Module):
-    def __init__(self, input_size, hidden_size, num_classes):
+    def __init__(self, input_size, hidden_size, output_size, num_layers, embedding_dim, vocab_size):
         super(LSTMModel, self).__init__()
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
 
-        # Use an LSTM layer instead of linear layers
-        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
+        # Embedding layer
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
 
-        # Fully connected layer
-        self.fc = nn.Linear(hidden_size, num_classes)
+        # LSTM layer
+        self.lstm = nn.LSTM(embedding_dim, hidden_size, num_layers, batch_first=True)
 
-        # ReLU activation
-        self.relu = nn.ReLU()
+        # Output layer
+        self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
-        # Initialize hidden state with zeros
-        # Make sure h0 and c0 are 2-D tensors
-        h0 = torch.zeros(x.size(0), self.lstm.hidden_size).to(x.device)
-        c0 = torch.zeros(x.size(0), self.lstm.hidden_size).to(x.device)
+        # Embedding
+        x = self.embedding(x)
 
-        # Expand dimensions for batch_first=True
-        h0 = h0.unsqueeze(0)
-        c0 = c0.unsqueeze(0)
+        # Initialize hidden and cell states
+        h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+        c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
 
-        # Forward propagate LSTM
+        # Forward pass through LSTM layer
         out, _ = self.lstm(x, (h0, c0))
 
-        # Take the output from the last time step
-        out = out[:, -1, :]
-
-        # Fully connected layer
-        out = self.fc(out)
-
-        # ReLU activation
-        out = self.relu(out)
-
+        # Get output from the last time step
+        out = self.fc(out[:, -1, :])
         return out
