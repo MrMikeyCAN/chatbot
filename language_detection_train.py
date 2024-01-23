@@ -14,7 +14,7 @@ import pandas as pd
 
 # Settings
 batch_size = 8
-epochs = 500
+epochs = 1
 learning_rate = 5e-5
 hidden_size = 64  # Increased hidden size
 num_layers = 8  # Increased number of layers

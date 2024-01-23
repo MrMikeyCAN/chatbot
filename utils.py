@@ -1,7 +1,6 @@
 from gtts import gTTS
 from pygame import mixer
 from nltk.corpus import wordnet
-from transformers import BertTokenizer
 import pandas as pd
 
 LD_dataset = pd.read_csv("LD.csv")
@@ -37,21 +36,7 @@ ignore_words = [
     "}",
     "~",
 ]
-
-tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
-
 max_length = 19
-
-
-def tokenize(text):
-    tokenized_text = tokenizer(
-        text=text,
-        truncation=True,
-        padding="max_length",
-        max_length=19,
-        return_tensors="pt",
-    )
-    return tokenized_text["input_ids"]
 
 
 def learn_meaning(word: str):
