@@ -1,24 +1,32 @@
 import torch.nn as nn
 
 
-class ImprovedTransformerModel(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, num_classes, num_layers=1, dropout_rate=0.0):
-        super(ImprovedTransformerModel, self).__init__()
+class ImprovedRNNModel(nn.Module):
+    def __init__(
+        self,
+        input_size,
+        hidden_size,
+        output_size,
+        num_classes,
+        num_layers=1,
+        dropout_rate=0.0,
+    ):
+        super(ImprovedRNNModel, self).__init__()
 
-        self.transformer_layer = nn.TransformerEncoderLayer(
-            d_model=input_size, nhead=1, batch_first=True
+        self.lstm = nn.LSTM(
+            input_size, hidden_size, num_layers, batch_first=True, dropout=dropout_rate
         )
 
         # Batch Normalization
-        self.batch_norm = nn.BatchNorm1d(input_size)
+        self.batch_norm = nn.BatchNorm1d(hidden_size)
 
         self.dropout = nn.Dropout(dropout_rate)
 
-        self.fc = nn.Linear(input_size, num_classes)
+        self.fc = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x):
-        out = self.transformer_layer(x)
-        out = out[:, -1, :]
+        _, (hn, cn) = self.lstm(x)
+        out = hn[-1, :, :]  # Take the hidden state from the last time step
         out = self.batch_norm(out)
         out = self.dropout(out)
         out = self.fc(out)

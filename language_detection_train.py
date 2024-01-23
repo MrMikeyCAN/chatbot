@@ -5,22 +5,22 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 from torch.nn.utils import clip_grad_norm_
 from sklearn.preprocessing import LabelEncoder
-from utils import LanguageIndexMapper, max_length
-from transformers import BertTokenizer, BertForSequenceClassification
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 import joblib
 import pandas as pd
+from transformers import BertForSequenceClassification, BertTokenizer
+from model import ImprovedRNNModel
+from utils import LanguageIndexMapper
 
 # Settings
 batch_size = 8
-epochs = 1
-learning_rate = 5e-5
-hidden_size = 64  # Increased hidden size
-num_layers = 8  # Increased number of layers
-dropout_rate = 0.3  # Adjust dropout rate
-patience = 20
-max_length = max_length
+epochs = 5  # Increased the number of epochs
+learning_rate = 5e-4  # Adjusted the learning rate
+hidden_size = 64
+num_layers = 2  # Adjusted the number of layers
+dropout_rate = 0.3
+max_length = 512  # Assuming a maximum sequence length
 
 # Loading and pre-processing the dataset for language detection
 LD_dataset = pd.read_csv("LD.csv")
@@ -110,11 +110,10 @@ test_loader = DataLoader(
     pin_memory=True,
 )
 
-# Load pre-trained BERT model
+# Load pre-trained BERT model for sequence classification
 model = BertForSequenceClassification.from_pretrained(
     "bert-base-multilingual-cased", num_labels=len(le.classes_)
 ).to(device)
-
 
 # Optimizer and scheduler
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
@@ -123,7 +122,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
 # Loss function
 criterion = nn.CrossEntropyLoss()
 
-# Train the model with early stopping using custom EarlyStopping class
+# Train the BERT model
 best_validation_loss = float("inf")
 patience = 20
 for epoch in range(epochs):
@@ -144,7 +143,7 @@ for epoch in range(epochs):
         optimizer.step()
 
     average_loss = total_loss / len(train_loader)
-    print(f"Training Loss: {average_loss}")
+    print(f"Training Loss (BERT): {average_loss}")
 
     # Validation
     model.eval()
@@ -164,7 +163,7 @@ for epoch in range(epochs):
             all_labels.extend(labels.cpu().numpy())
 
     accuracy = accuracy_score(all_labels, all_preds)
-    print(f"Validation Accuracy: {accuracy}")
+    print(f"Validation Accuracy (BERT): {accuracy}")
 
     scheduler.step()
 
@@ -177,9 +176,73 @@ for epoch in range(epochs):
     if average_loss < best_validation_loss:
         best_validation_loss = average_loss
 
-# Save the model
+# Save the BERT model
 model.save_pretrained("language_detection_bert")
 tokenizer.save_pretrained("language_detection_bert")
 
 # Save label encoder
 joblib.dump(le, "label_encoder.pkl")
+
+
+# Instantiate the RNN model
+num_classes = len(le.classes_)
+rnn_model = ImprovedRNNModel(
+    input_size=hidden_size,
+    hidden_size=hidden_size,
+    output_size=num_classes,
+    num_layers=num_layers,
+    dropout_rate=dropout_rate,
+).to(device)
+
+# Optimizer and scheduler for RNN
+optimizer_rnn = torch.optim.AdamW(rnn_model.parameters(), lr=learning_rate)
+scheduler_rnn = torch.optim.lr_scheduler.StepLR(optimizer_rnn, step_size=20, gamma=0.1)
+
+# Loss function for RNN
+criterion_rnn = nn.CrossEntropyLoss()
+
+# Train the RNN model
+for epoch in range(epochs):
+    rnn_model.train()
+    total_loss = 0
+    for batch in tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}"):
+        input_ids = batch[0]["input_ids"].to(device)
+        attention_mask = batch[0]["attention_mask"].to(device)
+        labels = batch[1].to(device)
+
+        optimizer_rnn.zero_grad()
+        rnn_outputs = rnn_model(input_ids)
+        loss_rnn = criterion_rnn(rnn_outputs, labels)
+        total_loss += loss_rnn.item()
+
+        loss_rnn.backward()
+        clip_grad_norm_(rnn_model.parameters(), max_norm=1)  # Gradient clipping
+        optimizer_rnn.step()
+
+    average_loss_rnn = total_loss / len(train_loader)
+    print(f"Training Loss (RNN): {average_loss_rnn}")
+
+    # Validation
+    rnn_model.eval()
+    all_preds_rnn = []
+    all_labels_rnn = []
+
+    with torch.no_grad():
+        for batch in tqdm(test_loader, desc=f"Validation"):
+            input_ids = batch[0]["input_ids"].to(device)
+            attention_mask = batch[0]["attention_mask"].to(device)
+            labels = batch[1].to(device)
+
+            rnn_outputs = rnn_model(input_ids)
+            preds_rnn = torch.argmax(rnn_outputs, dim=1)
+
+            all_preds_rnn.extend(preds_rnn.cpu().numpy())
+            all_labels_rnn.extend(labels.cpu().numpy())
+
+    accuracy_rnn = accuracy_score(all_labels_rnn, all_preds_rnn)
+    print(f"Validation Accuracy (RNN): {accuracy_rnn}")
+
+    scheduler_rnn.step()
+
+# Save the RNN model
+torch.save(rnn_model.state_dict(), "language_detection_rnn.pth")
