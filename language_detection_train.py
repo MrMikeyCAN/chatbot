@@ -13,14 +13,15 @@ from transformers import BertForSequenceClassification, BertTokenizer
 from model import ImprovedRNNModel
 from utils import LanguageIndexMapper
 
-# Settings
-batch_size = 8
-epochs = 5  # Increased the number of epochs
-learning_rate = 5e-4  # Adjusted the learning rate
+# Hyperparameters
+batch_size = 16
+epochs = 5
+learning_rate_bert = 5e-4
+learning_rate_rnn = 2e-5  # Adjusted learning rate for RNN
 hidden_size = 64
-num_layers = 2  # Adjusted the number of layers
+num_layers = 2
 dropout_rate = 0.3
-max_length = 512  # Assuming a maximum sequence length
+max_length = 512
 
 # Loading and pre-processing the dataset for language detection
 LD_dataset = pd.read_csv("LD.csv")
@@ -110,83 +111,102 @@ test_loader = DataLoader(
     pin_memory=True,
 )
 
-# Load pre-trained BERT model for sequence classification
-model = BertForSequenceClassification.from_pretrained(
-    "bert-base-multilingual-cased", num_labels=len(le.classes_)
-).to(device)
 
-# Optimizer and scheduler
-optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
+def train_and_validate(
+    model,
+    train_loader,
+    test_loader,
+    optimizer,
+    scheduler,
+    criterion,
+    epochs,
+    model_name,
+):
+    best_validation_loss = float("inf")
+    patience = 20
 
-# Loss function
-criterion = nn.CrossEntropyLoss()
+    for epoch in range(epochs):
+        model.train()
+        total_loss = 0
 
-# Train the BERT model
-best_validation_loss = float("inf")
-patience = 20
-for epoch in range(epochs):
-    model.train()
-    total_loss = 0
-    for batch in tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}"):
-        input_ids = batch[0]["input_ids"].to(device)
-        attention_mask = batch[0]["attention_mask"].to(device)
-        labels = batch[1].to(device)
-
-        optimizer.zero_grad()
-        outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
-        loss = outputs.loss
-        total_loss += loss.item()
-
-        loss.backward()
-        clip_grad_norm_(model.parameters(), max_norm=1)  # Gradient clipping
-        optimizer.step()
-
-    average_loss = total_loss / len(train_loader)
-    print(f"Training Loss (BERT): {average_loss}")
-
-    # Validation
-    model.eval()
-    all_preds = []
-    all_labels = []
-
-    with torch.no_grad():
-        for batch in tqdm(test_loader, desc=f"Validation"):
+        for batch in tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}"):
             input_ids = batch[0]["input_ids"].to(device)
             attention_mask = batch[0]["attention_mask"].to(device)
             labels = batch[1].to(device)
 
-            outputs = model(input_ids, attention_mask=attention_mask)
-            preds = torch.argmax(outputs.logits, dim=1)
+            optimizer.zero_grad()
+            outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
+            loss = outputs.loss
+            total_loss += loss.item()
 
-            all_preds.extend(preds.cpu().numpy())
-            all_labels.extend(labels.cpu().numpy())
+            loss.backward()
+            clip_grad_norm_(model.parameters(), max_norm=1)
+            optimizer.step()
 
-    accuracy = accuracy_score(all_labels, all_preds)
-    print(f"Validation Accuracy (BERT): {accuracy}")
+        average_loss = total_loss / len(train_loader)
+        print(f"Training Loss ({model_name}): {average_loss}")
 
-    scheduler.step()
+        # Validation
+        model.eval()
+        all_preds = []
+        all_labels = []
 
-    if epoch > patience and average_loss > best_validation_loss:
-        print(
-            f"Early stopping. No improvement in validation loss for {patience} epochs."
-        )
-        break
+        with torch.no_grad():
+            for batch in tqdm(test_loader, desc=f"Validation"):
+                input_ids = batch[0]["input_ids"].to(device)
+                attention_mask = batch[0]["attention_mask"].to(device)
+                labels = batch[1].to(device)
 
-    if average_loss < best_validation_loss:
-        best_validation_loss = average_loss
+                outputs = model(input_ids, attention_mask=attention_mask)
+                preds = torch.argmax(outputs.logits, dim=1)
+
+                all_preds.extend(preds.cpu().numpy())
+                all_labels.extend(labels.cpu().numpy())
+
+        accuracy = accuracy_score(all_labels, all_preds)
+        print(f"Validation Accuracy ({model_name}): {accuracy}")
+
+        scheduler.step(average_loss)  # Pass the metric for ReduceLROnPlateau scheduler
+
+        if epoch > patience and average_loss > best_validation_loss:
+            print(
+                f"Early stopping. No improvement in validation loss for {patience} epochs."
+            )
+            break
+
+        if average_loss < best_validation_loss:
+            best_validation_loss = average_loss
+
+
+# Train the BERT model
+model_bert = BertForSequenceClassification.from_pretrained(
+    "bert-base-multilingual-cased", num_labels=len(le.classes_)
+).to(device)
+
+
+optimizer_bert = torch.optim.AdamW(model_bert.parameters(), lr=learning_rate_bert)
+scheduler_bert = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer_bert, patience=5)
+criterion_bert = nn.CrossEntropyLoss()
+
+train_and_validate(
+    model_bert,
+    train_loader,
+    test_loader,
+    optimizer_bert,
+    scheduler_bert,
+    criterion_bert,
+    epochs,
+    "BERT",
+)
 
 # Save the BERT model
-model.save_pretrained("language_detection_bert")
+model_bert.save_pretrained("language_detection_bert")
 tokenizer.save_pretrained("language_detection_bert")
+joblib.dump(le, "label_encoder_bert.pkl")
 
-# Save label encoder
-joblib.dump(le, "label_encoder.pkl")
-
-
-# Instantiate the RNN model
+# Train the RNN model
 num_classes = len(le.classes_)
-rnn_model = ImprovedRNNModel(
+model_rnn = ImprovedRNNModel(
     input_size=hidden_size,
     hidden_size=hidden_size,
     output_size=num_classes,
@@ -194,55 +214,20 @@ rnn_model = ImprovedRNNModel(
     dropout_rate=dropout_rate,
 ).to(device)
 
-# Optimizer and scheduler for RNN
-optimizer_rnn = torch.optim.AdamW(rnn_model.parameters(), lr=learning_rate)
+optimizer_rnn = torch.optim.AdamW(model_rnn.parameters(), lr=learning_rate_rnn)
 scheduler_rnn = torch.optim.lr_scheduler.StepLR(optimizer_rnn, step_size=20, gamma=0.1)
-
-# Loss function for RNN
 criterion_rnn = nn.CrossEntropyLoss()
 
-# Train the RNN model
-for epoch in range(epochs):
-    rnn_model.train()
-    total_loss = 0
-    for batch in tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}"):
-        input_ids = batch[0]["input_ids"].to(device)
-        attention_mask = batch[0]["attention_mask"].to(device)
-        labels = batch[1].to(device)
-
-        optimizer_rnn.zero_grad()
-        rnn_outputs = rnn_model(input_ids)
-        loss_rnn = criterion_rnn(rnn_outputs, labels)
-        total_loss += loss_rnn.item()
-
-        loss_rnn.backward()
-        clip_grad_norm_(rnn_model.parameters(), max_norm=1)  # Gradient clipping
-        optimizer_rnn.step()
-
-    average_loss_rnn = total_loss / len(train_loader)
-    print(f"Training Loss (RNN): {average_loss_rnn}")
-
-    # Validation
-    rnn_model.eval()
-    all_preds_rnn = []
-    all_labels_rnn = []
-
-    with torch.no_grad():
-        for batch in tqdm(test_loader, desc=f"Validation"):
-            input_ids = batch[0]["input_ids"].to(device)
-            attention_mask = batch[0]["attention_mask"].to(device)
-            labels = batch[1].to(device)
-
-            rnn_outputs = rnn_model(input_ids)
-            preds_rnn = torch.argmax(rnn_outputs, dim=1)
-
-            all_preds_rnn.extend(preds_rnn.cpu().numpy())
-            all_labels_rnn.extend(labels.cpu().numpy())
-
-    accuracy_rnn = accuracy_score(all_labels_rnn, all_preds_rnn)
-    print(f"Validation Accuracy (RNN): {accuracy_rnn}")
-
-    scheduler_rnn.step()
+train_and_validate(
+    model_rnn,
+    train_loader,
+    test_loader,
+    optimizer_rnn,
+    scheduler_rnn,
+    criterion_rnn,
+    epochs,
+    "RNN",
+)
 
 # Save the RNN model
-torch.save(rnn_model.state_dict(), "language_detection_rnn.pth")
+torch.save(model_rnn.state_dict(), "language_detection_rnn.pth")
