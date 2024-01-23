@@ -32,18 +32,18 @@ from sklearn.model_selection import train_test_split
 from torch.nn.utils import clip_grad_norm_
 from sklearn.preprocessing import LabelEncoder
 from utils import LanguageIndexMapper, max_length
-from transformers import BertTokenizer, BertForSequenceClassification, AdamW
+from transformers import BertTokenizer, BertForSequenceClassification
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score
 import joblib
 import pandas as pd
 
 # Settings
-batch_size = 16
+batch_size = 8
 epochs = 500
 learning_rate = 5e-5
-hidden_size = 128  # Increased hidden size
-num_layers = 16  # Increased number of layers
+hidden_size = 64  # Increased hidden size
+num_layers = 8  # Increased number of layers
 dropout_rate = 0.3  # Adjust dropout rate
 patience = 20
 max_length = max_length
@@ -203,7 +203,7 @@ test_loader = DataLoader(
 )
 
 # Load pre-trained BERT model
-model = BertForSequenceClassification(
+model = BertForSequenceClassification.from_pretrained(
     "bert-base-multilingual-cased", num_labels=len(le.classes_)
 ).to(device)
 
