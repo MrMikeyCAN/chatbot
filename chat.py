@@ -1,55 +1,31 @@
+from transformers import BertTokenizer, BertForSequenceClassification
+from sklearn.preprocessing import LabelEncoder
+import pandas as pd
 import torch
-from torch.nn.utils.rnn import pad_sequence
-from utils import tokenize, LanguageIndexMapper, text_to_speech
-from model import ImprovedTransformerModel
 
-# Load the trained model
-FILE = "data.pth"
-checkpoint = torch.load(FILE)
+# Model ve tokenizer yükleme
+model = BertForSequenceClassification.from_pretrained('./saved_model')
+tokenizer = BertTokenizer.from_pretrained('./saved_model')
 
-input_size = checkpoint["input_size"]
-hidden_size = checkpoint["hidden_size"]
-output_size = checkpoint["output_size"]
+# LabelEncoder yükleme (Önce etiketlerin nasıl kodlandığını bilmek gerekiyor)
+data = pd.read_csv('LD.csv')  # Veri setinin yolu
+label_encoder = LabelEncoder()
+label_encoder.fit(data['labels'])
 
-model = ImprovedTransformerModel(input_size, hidden_size, output_size)
-model.load_state_dict(checkpoint["model_state"])
-model.eval()
-
-# Load the language labels used during training
-all_example_sentence = checkpoint["all_example_sentence"]
-languages = checkpoint["languages"]
-
-# Create an instance of LanguageIndexMapper
-label_mapper = LanguageIndexMapper(languages)
-
-
-# Function to predict the language of a sentence
-def predict_language(sentence):
+# Metni tahmin etme fonksiyonu
+def predict_language(text, model, tokenizer):
     model.eval()
+    inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=128)
+    inputs = {k: v.to(model.device) for k, v in inputs.items()}
+
     with torch.no_grad():
-        # Tokenize the sentence
-        words = tokenize(sentence)
+        outputs = model(**inputs)
 
-        # Pad the sequence and convert to tensor
-        words = pad_sequence([words], batch_first=True, padding_value=0).float()
+    prediction_index  = torch.argmax(outputs.logits, dim=1)
+    predicted_language = label_encoder.inverse_transform([prediction_index])[0]
+    return predicted_language
 
-        # Make prediction
-        output = model(words)
-
-        # Get the predicted label index
-        _, predicted_index = torch.max(output, 1)
-
-        # Map index to language label
-        predicted_language = label_mapper.index_to_label_func(predicted_index.item())
-
-        return predicted_language
-
-
-# Example usage
-new_sentence = "Merhabalar ben Mert, Vikipedia kullanıcısıyım Ayrıca teşekkürler."
-predicted_language = predict_language(new_sentence)
-
-text_to_speech(
-    text=f"The predicted language for the sentence is: {predicted_language}",
-    bot_name="Jarvis",
-)
+# Örnek kullanım
+text = input("Cümle:")
+predicted_language = predict_language(text, model, tokenizer)
+print(f"Predicted Language Index: {predicted_language}")
