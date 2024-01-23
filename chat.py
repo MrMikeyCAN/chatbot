@@ -1,7 +1,7 @@
 import torch
 from torch.nn.utils.rnn import pad_sequence
 from utils import tokenize, LanguageIndexMapper, text_to_speech
-from model import OptimizedRNNModel
+from model import ImprovedTransformerModel
 
 # Load the trained model
 FILE = "data.pth"
@@ -11,7 +11,7 @@ input_size = checkpoint["input_size"]
 hidden_size = checkpoint["hidden_size"]
 output_size = checkpoint["output_size"]
 
-model = OptimizedRNNModel(input_size, hidden_size, output_size)
+model = ImprovedTransformerModel(input_size, hidden_size, output_size)
 model.load_state_dict(checkpoint["model_state"])
 model.eval()
 

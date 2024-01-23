@@ -1,7 +1,7 @@
 from gtts import gTTS
 from pygame import mixer
 from nltk.corpus import wordnet
-from transformers import AutoTokenizer
+from transformers import BertTokenizer
 import pandas as pd
 
 LD_dataset = pd.read_csv("LD.csv")
@@ -38,7 +38,7 @@ ignore_words = [
     "~",
 ]
 
-tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
+tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
 
 max_length = 19
 
