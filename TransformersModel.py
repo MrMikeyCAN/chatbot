@@ -138,27 +138,3 @@ epochs = 30  # toplam eğitim epoch sayısı (gerektiği kadar ayarlayın)
 log_interval = 200  # Loglama aralığı
 for epoch in range(1, epochs + 1):
     train(model, train_data, bptt, criterion, optimizer)
-
-def predict(text, model, tokenizer, vocab):
-    # Text'i tokenize et ve tensora dönüştür
-    tokens = tokenizer(text)
-    indices = [vocab.stoi[token] for token in tokens]
-    indices_tensor = torch.tensor(indices, dtype=torch.long).unsqueeze(1).to(device)
-
-    # Model ile tahmin yap
-    with torch.no_grad():
-        output = model(indices_tensor)
-
-    # Tahmin sonucunu al (örneğin, en olası kelime indeksi)
-    predicted_index = output.argmax(1)
-    predicted_word = vocab.itos[predicted_index]
-
-    return predicted_word
-
-model.to(device)
-model.eval()
-
-# Tahmin yapılacak metni girin
-input_text = input("Metin gir :")
-predicted_word = predict(input_text, model, tokenizer, vocab)
-print("Predicted word:", predicted_word)
