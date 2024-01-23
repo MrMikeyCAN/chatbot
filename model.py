@@ -1,27 +1,27 @@
-import torch.nn as nn
 import torch
+import torch.nn as nn
 
-
-
-class ImprovedLSTMModel(nn.Module):
+class ImprovedTransformerModel(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, num_classes, num_layers=1, dropout_rate=0.0):
-        super(ImprovedLSTMModel, self).__init__()
+        super(ImprovedTransformerModel, self).__init__()
 
-        # Use bidirectional LSTM layer
-        self.lstm = nn.LSTM(input_size, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropout_rate, bidirectional=True)
+        # Set batch_first=True in the transformer layer
+        self.transformer_layer = nn.TransformerEncoderLayer(
+            d_model=input_size, nhead=1, batch_first=True  # <-- Set batch_first=True
+        )
 
         # Batch Normalization for stability and faster convergence
-        self.batch_norm = nn.BatchNorm1d(hidden_size * 2)
+        self.batch_norm = nn.BatchNorm1d(input_size)
 
         # Dropout layer for regularization
         self.dropout = nn.Dropout(dropout_rate)
 
         # Fully connected layer
-        self.fc = nn.Linear(hidden_size * 2, num_classes)
+        self.fc = nn.Linear(input_size, num_classes)
 
     def forward(self, x):
-        # Forward propagate LSTM
-        out, _ = self.lstm(x)
+        # Forward propagate transformer layer
+        out = self.transformer_layer(x)
 
         # Take the output from the last time step
         out = out[:, -1, :]
