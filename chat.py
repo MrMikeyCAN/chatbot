@@ -1,6 +1,7 @@
 from transformers import BertTokenizer, BertForSequenceClassification
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
+import numpy as np
 import torch
 
 # Model ve tokenizer yükleme
@@ -21,7 +22,7 @@ def predict_language(text, model, tokenizer):
     with torch.no_grad():
         outputs = model(**inputs)
 
-    prediction_index  = torch.argmax(outputs.logits, dim=1)
+    prediction_index  = torch.argmax(outputs.logits, dim=1).item()
     predicted_language = label_encoder.inverse_transform([prediction_index])[0]
     return predicted_language
 
