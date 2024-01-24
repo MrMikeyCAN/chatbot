@@ -68,4 +68,4 @@ trainer.train()
 
 # Modeli kaydetme
 model.save_pretrained("./language_detection_model")
-tokenizer.save_pretrained("./language_detection_model")
+tokenizer.save_pretrained("./language_detection_model",)
