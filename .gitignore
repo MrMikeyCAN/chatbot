@@ -7,7 +7,9 @@ __pycache__/
 *.waw
 
 #Ignore data files
-
+/results
+/logs
+/saved_model/
 *.h5
 /.vscode
 *.csv
@@ -15,3 +17,4 @@ __pycache__/
 *.txt
 /language_detection_bert/
 test.py
+*.pth
