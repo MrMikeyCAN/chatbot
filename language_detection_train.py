@@ -35,7 +35,7 @@ test_dataset = CustomDataset(test_data['target'].tolist(), test_data['encoded_la
 # Eğitim ayarları
 training_args = TrainingArguments(
     output_dir='./results',
-    num_train_epochs=3,
+    num_train_epochs=1,
     per_device_train_batch_size=16,
     per_device_eval_batch_size=64,
     warmup_steps=500,
@@ -54,5 +54,4 @@ trainer = Trainer(
 trainer.train()
 
 # Modeli kaydetme
-model.save_pretrained('./saved_model')
-tokenizer.save_pretrained('./saved_model')
+model.save_pretrained('./saved_model', model_name='model', tokenizer_name='tokenizer')
