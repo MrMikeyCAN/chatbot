@@ -10,7 +10,7 @@ tokenizer = BertTokenizer.from_pretrained('./saved_model')
 # LabelEncoder yükleme (Önce etiketlerin nasıl kodlandığını bilmek gerekiyor)
 data = pd.read_csv('LD.csv')  # Veri setinin yolu
 label_encoder = LabelEncoder()
-label_encoder.fit(data['labels'])
+data['encoded_labels'] = label_encoder.fit_transform(data['labels'])
 
 # Metni tahmin etme fonksiyonu
 def predict_language(text, model, tokenizer):
