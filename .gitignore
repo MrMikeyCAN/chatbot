@@ -16,5 +16,7 @@ __pycache__/
 *.pkl
 *.txt
 /language_detection_bert/
+/language_detection_model/
+/emotion_detection_model/
 test.py
 *.pth
