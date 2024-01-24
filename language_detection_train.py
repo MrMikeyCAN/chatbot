@@ -42,7 +42,7 @@ train_dataset = CustomDataset(
     train_data["target"].tolist(), train_data["encoded_labels"].tolist()
 )
 test_dataset = CustomDataset(
-    test_data["target"].tolist(), test_data["encoded_labels"].tolist()
+    test_data["target"].tolist(), test_data["encoded_labels"].tolist() 
 )
 
 # Eğitim ayarları
