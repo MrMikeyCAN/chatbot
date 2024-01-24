@@ -48,7 +48,7 @@ test_dataset = CustomDataset(
 # Eğitim ayarları
 training_args = TrainingArguments(
     output_dir="./results",
-    num_train_epochs=3,
+    num_train_epochs=0.5,
     per_device_train_batch_size=16,
     per_device_eval_batch_size=64,
     warmup_steps=500,
