@@ -92,7 +92,7 @@
 # from IPython.display import Audio
 # from scipy.io.wavfile import write as write_wav
 # Audio(output["audio"], rate=output["sampling_rate"])
-
+ 
 
 ### **** Dataset harici kendimiz özelleştirebileceğimiz kodlar **** ###
 # TODO connecting hugging face to import the dataset
@@ -442,39 +442,27 @@ trainer.push_to_hub(commit_message="Trying to figure it out")
 
 ## TODO 1. way of using Pipelines
 
+import torch
+import soundfile as sf
 from transformers import pipeline
 
-pipe = pipeline("text-to-speech", model="KMCan/text_to_speech_pretrained_model")
+class TextToSpeech:
+    def __init__(self, model_name):
+        self.pipe = pipeline("text-to-speech", model=model_name)
 
+    def text_to_audio(self, text, speaker_embeddings=None, output_file="output_audio.wav"):
+        forward_params = {"speaker_embeddings": torch.tensor(speaker_embeddings).unsqueeze(0)} if speaker_embeddings else {}
+        output = self.pipe(text, forward_params=forward_params)
+        audio_data = output["audio"]
+        sampling_rate = output["sampling_rate"]
+        sf.write(output_file, audio_data, sampling_rate)
+        return output_file
 
+# Example usage:
+model_name = "KMCan/text_to_speech_pretrained_model"
 text = "Hello sir"
+speaker_embeddings = None  # Assuming speaker embeddings are not provided initially
 
-
-example = dataset["test"][304]
-speaker_embeddings = torch.tensor(example["speaker_embeddings"]).unsqueeze(0)
-
-
-forward_params = {"speaker_embeddings": speaker_embeddings}
-output = pipe(text, forward_params=forward_params)
-
-### ? Checking for the output as always
-# print(output)
-
-### TODO listening the audio
-### ? I am using soundfile but if you want you can use any library you want
-
-import soundfile as sf
-
-# Assuming output['audio'] contains raw audio data and output['sampling_rate'] contains the sampling rate
-audio_data = output["audio"]
-sampling_rate = output["sampling_rate"]
-
-import soundfile as sf
-
-# Assuming output['audio'] contains raw audio data and output['sampling_rate'] contains the sampling rate
-audio_data = output["audio"]
-sampling_rate = output["sampling_rate"]
-
-# Save the audio data to a temporary file
-temp_file = "temp_audio.wav"
-sf.write(temp_file, audio_data, sampling_rate)
+tts = TextToSpeech(model_name)
+audio_file = tts.text_to_audio(text, speaker_embeddings)
+print(f"Audio file saved as: {audio_file}")
