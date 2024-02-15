@@ -100,7 +100,6 @@ from huggingface_hub import notebook_login
 
 ### ? if you didn't logged in even once change the new_session to True
 notebook_login(
-    new_session=False,
     write_permission=True,
 )
 
@@ -392,12 +391,12 @@ model.config.use_cache = False
 from transformers import Seq2SeqTrainingArguments
 
 training_args = Seq2SeqTrainingArguments(
-    output_dir="KMCan/text_to_speech_pretrained_model",  # change to a repo name of your choice
+    output_dir="text_to_speech_pretrained_model",  # change to a repo name of your choice
     per_device_train_batch_size=4,
     gradient_accumulation_steps=8,
     learning_rate=1e-5,
     warmup_steps=500,
-    max_steps=1,
+    max_steps=4000,
     gradient_checkpointing=True,
     ### ? Change this code to True if you have cuda
     fp16=False,
@@ -436,7 +435,7 @@ processor.save_pretrained("KMCan/text_to_speech_pretrained_model")
 
 ### TODO pushing the final result to hub
 # ! Its important for later.While checking for our dataset
-trainer.push_to_hub()
+trainer.push_to_hub(commit_message="Trying to figure it out")
 
 
 ### TODO Using the pretrained data with two optional way
@@ -448,7 +447,7 @@ from transformers import pipeline
 pipe = pipeline("text-to-speech", model="KMCan/text_to_speech_pretrained_model")
 
 
-text = "hallo allemaal, ik praat nederlands. groetjes aan iedereen!"
+text = "Hello sir"
 
 
 example = dataset["test"][304]
@@ -459,7 +458,7 @@ forward_params = {"speaker_embeddings": speaker_embeddings}
 output = pipe(text, forward_params=forward_params)
 
 ### ? Checking for the output as always
-print(output)
+# print(output)
 
 ### TODO listening the audio
 ### ? I am using soundfile but if you want you can use any library you want
@@ -470,6 +469,12 @@ import soundfile as sf
 audio_data = output["audio"]
 sampling_rate = output["sampling_rate"]
 
-from IPython.display import Audio
+import soundfile as sf
 
-Audio(output["audio"], rate=output["sampling_rate"])
+# Assuming output['audio'] contains raw audio data and output['sampling_rate'] contains the sampling rate
+audio_data = output["audio"]
+sampling_rate = output["sampling_rate"]
+
+# Save the audio data to a temporary file
+temp_file = "temp_audio.wav"
+sf.write(temp_file, audio_data, sampling_rate)
