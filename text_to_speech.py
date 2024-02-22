@@ -460,7 +460,7 @@ class TextToSpeech:
 
 # Example usage:
 model_name = "KMCan/text_to_speech_pretrained_model"
-text = "Hello sir"
+text = "Hello sir Ibo"
 speaker_embeddings = None  # Assuming speaker embeddings are not provided initially
 
 tts = TextToSpeech(model_name)
