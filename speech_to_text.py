@@ -3,7 +3,7 @@ from scipy.io.wavfile import write
 import torch
 from transformers import pipeline
 
-def record_audio(duration=5, fs=16000, filename='output.wav'):
+"""def record_audio(duration=5, fs=16000, filename='output.wav'):
     print("Recording...")
     recording = sd.rec(int(duration * fs), samplerate=fs, channels=1)
     sd.wait()  # Kaydın bitmesini bekleyin
@@ -12,6 +12,7 @@ def record_audio(duration=5, fs=16000, filename='output.wav'):
 
 # Ses kaydını yap
 record_audio()
+"""
 
 # Pipeline için ayarlar"
 model_id = "openai/whisper-large"
@@ -20,5 +21,5 @@ model_id = "openai/whisper-large"
 whisper_pipe = pipeline(model=model_id, task="automatic-speech-recognition")
 
 # Kaydedilmiş ses dosyasını işle
-result = whisper_pipe("output.wav")
+result = whisper_pipe("temp_audio (1).wav")
 print(result["text"])
