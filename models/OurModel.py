@@ -2,6 +2,10 @@ import torch
 import torch.nn as nn
 
 
+# TODO language_detection block oluşturuyoruz ki dil algılama sağlanabilsin
+
+
+# TODO Training arguments oluşturuyoruz ki kodları güvenliği ve temizliği için
 class TrainArgumentsForOurModel:
     def __init__(
         self,

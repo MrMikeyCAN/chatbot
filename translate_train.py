@@ -75,7 +75,7 @@ training_args = Seq2SeqTrainingArguments(
     gradient_accumulation_steps=2,
     learning_rate=1e-5,
     warmup_steps=500,
-    max_steps=100,
+    max_steps=1,
     fp16=False,  # Değiştirildi
     evaluation_strategy="steps",
     per_device_eval_batch_size=8,
@@ -104,7 +104,11 @@ text = "translate English to French: Legumes share resources with nitrogen-fixin
 
 from transformers import pipeline
 
-translator = pipeline("translation", model="my_awesome_opus_books_model")
+translator = pipeline(
+    "translation",
+    model="my_awesome_opus_books_model",
+    token="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",
+)
 translator(text)
 
 
