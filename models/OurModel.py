@@ -284,7 +284,9 @@ class Transformer(nn.Module):
         super(Transformer, self).__init__()
 
         if arguments.guessLanguage:
-            self.languageClassifier = LanguageClassifier(model_path=arguments.model_path)
+            self.languageClassifier = LanguageClassifier(
+                model_path=arguments.model_path
+            )
             self.language = self.languageClassifier.classify_text(item)
 
         self.encoder = Encoder(
@@ -335,9 +337,6 @@ class Transformer(nn.Module):
 
 
 if __name__ == "__main__":
-
-    import matplotlib.pyplot as plt
-
     # Öncelikle, model için bir tokenizer oluşturalım
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
@@ -366,31 +365,29 @@ if __name__ == "__main__":
         device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         max_length=100,
         norm_activite_func="layernorm",
-        guessLanguage=False,
+        guessLanguage=True,
     )
 
     # Modeli oluşturalım
-    model = Transformer(train_arguments, item="Example").to(train_arguments.device)
+    model = Transformer(train_arguments, item="Example")
 
     # Eğitim için kayıp fonksiyonunu belirleyelim
     criterion = nn.CrossEntropyLoss()
 
-    # Optimizasyon fonksiyonunu ve başlangıç öğrenme oranını belirleyelim
+    # Optimizasyon fonksiyonunu belirleyelim
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
-    # Öğrenme oranını izlemek için bir liste oluşturalım
-    learning_rates = []
 
     # Eğitim verilerini belirleyelim
     input_data = input_tensor.to(train_arguments.device)
     target_data = target_tensor.to(train_arguments.device)
 
-    losses = []
-    epoch = 10000
     # Modeli eğitelim
     model.train()
-    for epoch in range(epoch):  # Örnek olarak 50 epoch için eğitim yapalım
+    for epoch in range(100):  # Örnek olarak 100 epoch için eğitim yapalım
         optimizer.zero_grad()
-        output = model(input_data, target_data[:, :-1]) # Çıkışın son endeksini atlayalım
+        output = model(
+            input_data, target_data[:, :-1]
+        )  # Çıkışın son endeksini atlayalım
         output_dim = output.shape[-1]
         output = output.contiguous().view(-1, output_dim)
         target = (
@@ -400,14 +397,19 @@ if __name__ == "__main__":
         loss.backward()
         optimizer.step()
 
-        # Loss değerini kaydedelim
-        losses.append(loss.item())
-
         print(f"Epoch {epoch+1}, Loss: {loss.item()}")
 
-    # Tabloyu oluşturalım
-    plt.plot(losses)
-    plt.xlabel("Epoch")
-    plt.ylabel("Loss")
-    plt.title("Loss per Epoch")
-    plt.show()
+        # Her 10 epoch'ta bir modeli kaydedelim
+        if (epoch + 1) % 10 == 0:
+            checkpoint = {
+                "model_state_dict": model.state_dict(),
+                "optimizer_state_dict": optimizer.state_dict(),
+                "loss": loss,
+                "epoch": epoch,
+            }
+            torch.save(
+                checkpoint, f"logs/checkpoint/model_checkpoint_epoch_{epoch+1}.pth"
+            )
+
+    # Eğitim tamamlandıktan sonra modeli kaydedelim
+    torch.save(model.state_dict(), "trained_model.pth")
