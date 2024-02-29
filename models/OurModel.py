@@ -283,9 +283,8 @@ class Transformer(nn.Module):
 
         super(Transformer, self).__init__()
 
-        self.languageClassifier = LanguageClassifier(model_path=arguments.model_path)
-
         if arguments.guessLanguage:
+            self.languageClassifier = LanguageClassifier(model_path=arguments.model_path)
             self.language = self.languageClassifier.classify_text(item)
 
         self.encoder = Encoder(
@@ -367,11 +366,11 @@ if __name__ == "__main__":
         device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         max_length=100,
         norm_activite_func="layernorm",
-        guessLanguage=True,
+        guessLanguage=False,
     )
 
     # Modeli oluşturalım
-    model = Transformer(train_arguments, item="Example")
+    model = Transformer(train_arguments, item="Example").to(train_arguments.device)
 
     # Eğitim için kayıp fonksiyonunu belirleyelim
     criterion = nn.CrossEntropyLoss()
@@ -386,14 +385,12 @@ if __name__ == "__main__":
     target_data = target_tensor.to(train_arguments.device)
 
     losses = []
-
+    epoch = 10000
     # Modeli eğitelim
     model.train()
-    for epoch in range(50):  # Örnek olarak 50 epoch için eğitim yapalım
+    for epoch in range(epoch):  # Örnek olarak 50 epoch için eğitim yapalım
         optimizer.zero_grad()
-        output = model(
-            input_data, target_data[:, :-1]
-        )  # Çıkışın son endeksini atlayalım
+        output = model(input_data, target_data[:, :-1]) # Çıkışın son endeksini atlayalım
         output_dim = output.shape[-1]
         output = output.contiguous().view(-1, output_dim)
         target = (

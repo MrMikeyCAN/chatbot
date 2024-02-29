@@ -1,47 +1,23 @@
-import pyaudio
+import sounddevice as sd
 import numpy as np
-import webrtcvad
 import wave
 import matplotlib.pyplot as plt
 import noise_filter as nf
 from pedalboard import *
 
-class VoiceActivityDetector:
-    def __init__(self, format, channels, rate, chunk_duration_ms,silence_duration_ms = 500,voice_agression=3):
-        self.vad = webrtcvad.Vad(voice_agression)
+class Voicer:
+    def __init__(self, format, channels, rate, duration):
         self.format = format
         self.channels = channels
         self.rate = rate
-        self.chunk_duration_ms = chunk_duration_ms
-        self.chunk_size = int(rate * chunk_duration_ms / 1000)
-        self.silence_duration_ms = silence_duration_ms
-        self.silence_frames_threshold = int(self.silence_duration_ms / chunk_duration_ms)
-        self.audio = pyaudio.PyAudio()
-        self.stream = self.audio.open(format=format, channels=channels,
-                                      rate=rate, input=True,
-                                      frames_per_buffer=self.chunk_size)
         self.frames = []
-        self.silence_frames_counter = 0
+        self.duration = duration
         self.waveform = np.array([])
 
     def record(self):
-        print("Recording...")
-        while True:
-            data = self.stream.read(self.chunk_size)
-            is_speech = self.vad.is_speech(data, self.rate)
-            
-            if is_speech:
-                print("Speech detected!")
-                self.silence_frames_counter = 0
-            else:
-                print("Silence.")
-                self.silence_frames_counter += 1
-            
-            self.frames.append(np.frombuffer(data, dtype=np.int16))
-
-            if self.silence_frames_counter >= self.silence_frames_threshold:
-                break
-        self.waveform = np.concatenate(self.frames)
+        print("Recording for {} seconds...".format(self.duration))
+        self.waveform = sd.rec(int(self.duration * self.rate), samplerate=self.rate, channels=self.channels, dtype=self.format)
+        sd.wait()
         self.waveform = self.waveform.reshape(self.channels,-1)
 
     def save_wave(self, filename):
@@ -52,14 +28,9 @@ class VoiceActivityDetector:
         wave_file.writeframes(b''.join(self.frames))
         wave_file.close()
 
-    def close(self):
-        self.stream.stop_stream()
-        self.stream.close()
-        self.audio.terminate()
-
-    def draw_waveform(self,title="Waveform"):
-        num_channels, num_frames = self.waveform.shape
-        time_axis = np.arange(0, num_frames) / self.rate
+    def draw_waveform(self,waveform,rate,title="Waveform"):
+        num_channels, num_frames = waveform.shape
+        time_axis = np.arange(0, num_frames) / rate
 
         figure, axes = plt.subplots(num_channels, 1)
         if num_channels == 1:
@@ -71,37 +42,33 @@ class VoiceActivityDetector:
                 axes[c].set_ylabel(f"Channel {c+1}")
         figure.suptitle(title)
 
-    def draw_specgram(self,title="Specgram"):
-        num_channels,_ = self.waveform.shape
+    def draw_specgram(self,waveform,rate,title="Specgram"):
+        num_channels,_ = waveform.shape
 
         figure, axes = plt.subplots(num_channels, 1)
         if num_channels == 1:
             axes = [axes]
         for c in range(num_channels):
-            axes[c].specgram(self.waveform[c], Fs=self.rate)
+            axes[c].specgram(self.waveform[c], Fs=rate)
             if num_channels > 1:
                 axes[c].set_ylabel(f"Channel {c+1}")
         figure.suptitle(title)
 
-vad = VoiceActivityDetector(pyaudio.paInt16, 1, 16000, 10,1000,2)
-vad.record()
-vad.save_wave("out.wav")
-vad.close()
+voicer = Voicer("float32", 1, 16000,10)
+voicer.record()
 
-vad.draw_specgram()
-vad.draw_waveform()
+voicer.draw_specgram(voicer.waveform, rate=voicer.rate)
+voicer.draw_waveform(voicer.waveform, rate=voicer.rate)
 
 board = Pedalboard([
     NoiseGate(threshold_db=-30, ratio=1.5, release_ms=250),
     Compressor(threshold_db=-16, ratio=2.5),
-    LowShelfFilter(cutoff_frequency_hz=400, gain_db=10, q=1),
-    Gain(gain_db=10)
+    LowShelfFilter(cutoff_frequency_hz=500, gain_db=10, q=1),
+    Gain(gain_db=15)
 ])
 
 audio_filter = nf.SoundFilter()
-audio_filter.read("out.wav")
-audio_filter.clear(board=board)
-audio_filter.write("clear.wav")
+audio_filter.clear(board=board,audio=[voicer.waveform.flatten()])
 audio_filter.playSounds()
 plt.show()
 

@@ -6,26 +6,25 @@ import sounddevice as sd
 class SoundFilter:
     def __init__(self,sample_rate=16000):
         self.sample_rate=sample_rate
-
+        self.audio = None
     def read(self,filename):
         with AudioFile(filename).resampled_to(self.sample_rate) as f:
             self.audio = f.read(f.frames)
+        for i in list(self.audio):
+            print(self.audio)    
 
     def clear(self,audio=None,stationary=True,prop_decrease=0.75,
-        board:Pedalboard = None,time=3):
+        board:Pedalboard = None):
 
         if(self.audio is None and audio is not None):
             self.audio=audio
-        
-        if(time == 0):
-            reduced_noise = nr.reduce_noise(y=self.audio, sr=self.sample_rate, stationary=stationary, prop_decrease=prop_decrease)
-        else:
-            noise_clip = self.audio[0:int(time * self.sample_rate)]
-            reduced_noise = nr.reduce_noise(y=self.audio, sr=self.sample_rate,y_noise=noise_clip)
+
+        reduced_noise = nr.reduce_noise(y=self.audio, sr=self.sample_rate, stationary=stationary, prop_decrease=prop_decrease)
 
         if board is not None:
             self.effected = board(reduced_noise, self.sample_rate)
         else:
+            print("No board")
             self.effected = reduced_noise
 
     def write(self,filename):
