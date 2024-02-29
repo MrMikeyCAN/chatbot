@@ -1,79 +1,84 @@
-from transformers import (
-    BertTokenizer,
-    BertForSequenceClassification,
-    Trainer,
-    TrainingArguments,
-)
 import torch
+import torch.nn as nn
+from transformers import BertTokenizer
 from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import pandas as pd
+from models.OurModel import (
+    Transformer,
+    TrainingArguments,
+    TransformerModelArguments,
+    Trainer,
+)
 
-# Veri yükleme ve hazırlama
+# TODO Veri yükleme ve hazırlama
 data = pd.read_csv("ED.csv")
-label_encoder = LabelEncoder()
-data["encoded_labels"] = label_encoder.fit_transform(data["labels"])
-train_data, test_data = train_test_split(data, test_size=0.2, random_state=42)
+X = data["target"]
+y = data["labels"]
 
-# Tokenizer ve model yükleme
-tokenizer = BertTokenizer.from_pretrained("bert-base-multilingual-cased")
-model = BertForSequenceClassification.from_pretrained(
-    "bert-base-multilingual-cased", num_labels=len(label_encoder.classes_)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, random_state=2, train_size=0.1
 )
 
-
-# Veriyi tokenleştirme
-class CustomDataset(Dataset):
-    def __init__(self, texts, labels):
-        self.encodings = tokenizer(texts, truncation=True, padding=True, max_length=128)
-        self.labels = labels
-
-    def __getitem__(self, idx):
-        item = {key: torch.tensor(val[idx]) for key, val in self.encodings.items()}
-        item["labels"] = torch.tensor(self.labels[idx])
-        return item
-
-    def __len__(self):
-        return len(self.labels)
+X_train = X_train.tolist()
+y_train = y_train.tolist()
 
 
-train_dataset = CustomDataset(
-    train_data["target"].tolist(), train_data["encoded_labels"].tolist()
+tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+## TODO girdileri oluşturuyoruz
+input_ids = tokenizer.encode(
+    X_train, add_special_tokens=True, max_length=2048, truncation=True
 )
-test_dataset = CustomDataset(
-    test_data["target"].tolist(), test_data["encoded_labels"].tolist()
+target_ids = tokenizer.encode(
+    y_train, add_special_tokens=True, max_length=2048, truncation=True
 )
 
-# Eğitim ayarları
-training_args = TrainingArguments(
-    output_dir="./results",
-    num_train_epochs=0.5,
-    per_device_train_batch_size=16,
-    per_device_eval_batch_size=64,
-    warmup_steps=500,
-    weight_decay=0.01,
-    logging_dir="./logs",
+# Tensorlara dönüştürelim
+input_tensor = torch.tensor([input_ids])
+target_tensor = torch.tensor([target_ids])
+
+# Eğitim için model parametrelerini belirleyelim
+transformerModelArguments = TransformerModelArguments(
+    embed_size=1024,
+    heads=8,
+    dropout=0.1,
+    forward_expansion=4,
+    src_vocab_size=torch.max(input_tensor)
+    + 1,  # +1, çünkü 0'dan başlamak yerine 1'den başlıyoruz
+    trg_vocab_size=torch.max(target_tensor)
+    + 1,  # +1, çünkü 0'dan başlamak yerine 1'den başlıyoruz
+    src_pad_idx=0,
+    trg_pad_idx=0,
+    num_layers=6,
+    device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
+    max_length=1024,
+    norm_activite_func="layernorm",
+    guessLanguage=True,
 )
 
-# Eğitim
-trainer = Trainer(
+# Modeli oluşturalım
+model = Transformer(transformerModelArguments, item="Example")
+
+# Eğitim için kayıp fonksiyonunu belirleyelim
+criterion = nn.CrossEntropyLoss()
+
+# Optimizasyon fonksiyonunu belirleyelim
+optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+
+# Eğitim verilerini belirleyelim
+input_data = input_tensor.to(transformerModelArguments.device)
+target_data = target_tensor.to(transformerModelArguments.device)
+
+trainingArguments = TrainingArguments(
+    epochs=10,
     model=model,
-    args=training_args,
-    train_dataset=train_dataset,
-    eval_dataset=test_dataset,
+    visualize=True,
+    input_data=input_tensor,
+    target_data=target_tensor,
+    checkpoints=5,
 )
 
+# Modeli eğitelim
+trainer = Trainer(args=trainingArguments)
 trainer.train()
-
-# Modeli kaydetme
-model.save_pretrained(
-    "./emotion_detection_model",
-    model_name="pytorch_model.bin",
-    tokenizer_name="tokenizer",
-)
-tokenizer.save_pretrained(
-    "./emotion_detection_model",
-    model_name="pytorch_model.bin",
-    tokenizer_name="tokenizer",
-)

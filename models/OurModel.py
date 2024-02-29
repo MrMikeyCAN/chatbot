@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from transformers import BertTokenizer, BertForSequenceClassification
 from sklearn.preprocessing import LabelEncoder
+import matplotlib.pyplot as plt
 
 
 # TODO Kendi tokenizer'ımızı oluşturuyoruz
@@ -39,7 +40,7 @@ class LanguageClassifier:
 
 
 # TODO Training arguments oluşturuyoruz ki kodları güvenliği ve temizliği için
-class TrainArgumentsForOurModel:
+class TransformerModelArguments:
     def __init__(
         self,
         guessLanguage=False,
@@ -279,7 +280,7 @@ class Decoder(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, arguments: TrainArgumentsForOurModel, item):
+    def __init__(self, arguments: TransformerModelArguments, item):
 
         super(Transformer, self).__init__()
 
@@ -336,80 +337,83 @@ class Transformer(nn.Module):
         return out
 
 
-if __name__ == "__main__":
-    # Öncelikle, model için bir tokenizer oluşturalım
-    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+### TODO Daha iyi bir sonuç için eğitim için özelleştirilmiş bölümler
 
-    # Giriş ve çıkış cümlelerimizi tokenize edelim
-    input_sentence = "How are you?"
-    target_sentence = "Wie geht es dir?"
 
-    input_ids = tokenizer.encode(input_sentence, add_special_tokens=True)
-    target_ids = tokenizer.encode(target_sentence, add_special_tokens=True)
+class TrainingArguments:
+    def __init__(
+        self,
+        model: nn.Module = None,
+        visualize: bool = False,
+        epochs: int = 100,
+        input_data=None,
+        target_data=None,
+        learning_rate=0.0001,
+        checkpoints=10,
+    ):
+        self.model = model
+        self.visualize = visualize
+        self.epochs = epochs
+        self.input_data = input_data
+        self.target_data = target_data
+        self.learning_rate = learning_rate
+        self.checkpoints = checkpoints
 
-    # Tensorlara dönüştürelim
-    input_tensor = torch.tensor([input_ids])
-    target_tensor = torch.tensor([target_ids])
 
-    # Eğitim için model parametrelerini belirleyelim
-    train_arguments = TrainArgumentsForOurModel(
-        embed_size=512,
-        heads=8,
-        dropout=0.1,
-        forward_expansion=4,
-        src_vocab_size=input_tensor.max().item()
-        + 1,  # +1, çünkü 0'dan başlamak yerine 1'den başlıyoruz
-        trg_vocab_size=target_tensor.max().item()
-        + 1,  # +1, çünkü 0'dan başlamak yerine 1'den başlıyoruz
-        num_layers=6,
-        device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
-        max_length=100,
-        norm_activite_func="layernorm",
-        guessLanguage=True,
-    )
+class Trainer:
+    def __init__(self, args: TrainingArguments):
+        self.args = args
+        self.model = args.model
+        self.visualize = args.visualize
+        self.epochs = args.epochs
+        self.input_data = args.input_data
+        self.target_data = args.target_data
+        self.learning_rate = args.learning_rate
+        self.checkpoints = args.checkpoints
 
-    # Modeli oluşturalım
-    model = Transformer(train_arguments, item="Example")
+    def train(self):
+        losses = []
+        self.model.train()
+        # Eğitim için kayıp fonksiyonunu belirleyelim
+        criterion = nn.CrossEntropyLoss()
 
-    # Eğitim için kayıp fonksiyonunu belirleyelim
-    criterion = nn.CrossEntropyLoss()
+        # Optimizasyon fonksiyonunu belirleyelim
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        for epoch in range(self.epochs):  # Örnek olarak 100 epoch için eğitim yapalım
+            optimizer.zero_grad()
+            output = self.model(
+                self.input_data, self.target_data[:, :-1]
+            )  # Çıkışın son endeksini atlayalım
+            output_dim = output.shape[-1]
+            output = output.contiguous().view(-1, output_dim)
+            target = (
+                self.target_data[:, 1:].contiguous().view(-1)
+            )  # Etiketlerin ilk endeksini atlayalım
+            loss = criterion(output, target)
+            loss.backward()
+            optimizer.step()
 
-    # Optimizasyon fonksiyonunu belirleyelim
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+            losses.append(loss.item())
+            print(f"Epoch {epoch+1}, Loss: {loss.item()}")
 
-    # Eğitim verilerini belirleyelim
-    input_data = input_tensor.to(train_arguments.device)
-    target_data = target_tensor.to(train_arguments.device)
+            # Her 10 epoch'ta bir modeli kaydedelim
+            if (epoch + 1) % self.checkpoints == 0:
+                checkpoint = {
+                    "model_state_dict": self.model.state_dict(),
+                    "optimizer_state_dict": optimizer.state_dict(),
+                    "loss": loss,
+                    "epoch": epoch,
+                }
+                torch.save(
+                    checkpoint, f"logs/checkpoint/model_checkpoint_epoch_{epoch+1}.pth"
+                )
 
-    # Modeli eğitelim
-    model.train()
-    for epoch in range(100):  # Örnek olarak 100 epoch için eğitim yapalım
-        optimizer.zero_grad()
-        output = model(
-            input_data, target_data[:, :-1]
-        )  # Çıkışın son endeksini atlayalım
-        output_dim = output.shape[-1]
-        output = output.contiguous().view(-1, output_dim)
-        target = (
-            target_data[:, 1:].contiguous().view(-1)
-        )  # Etiketlerin ilk endeksini atlayalım
-        loss = criterion(output, target)
-        loss.backward()
-        optimizer.step()
-
-        print(f"Epoch {epoch+1}, Loss: {loss.item()}")
-
-        # Her 10 epoch'ta bir modeli kaydedelim
-        if (epoch + 1) % 10 == 0:
-            checkpoint = {
-                "model_state_dict": model.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "loss": loss,
-                "epoch": epoch,
-            }
-            torch.save(
-                checkpoint, f"logs/checkpoint/model_checkpoint_epoch_{epoch+1}.pth"
-            )
-
-    # Eğitim tamamlandıktan sonra modeli kaydedelim
-    torch.save(model.state_dict(), "trained_model.pth")
+        if self.visualize:
+            plt.plot(losses)
+            plt.xlabel("Epoch")
+            plt.ylabel("Loss")
+            plt.title("Loss per Epoch")
+            plt.show()
+        # Eğitim tamamlandıktan sonra modeli kaydedelim
+        torch.save(self.model.state_dict(), "trained_model.pth")
+        print("Başarıyla kaydedildi")
