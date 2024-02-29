@@ -42,7 +42,7 @@ train_dataset = CustomDataset(
     train_data["target"].tolist(), train_data["encoded_labels"].tolist()
 )
 test_dataset = CustomDataset(
-    test_data["target"].tolist(), test_data["encoded_labels"].tolist() 
+    test_data["target"].tolist(), test_data["encoded_labels"].tolist()
 )
 
 # Eğitim ayarları
@@ -65,6 +65,11 @@ trainer = Trainer(
 )
 
 trainer.train()
+
+# Save label encoder
+torch.save(
+    label_encoder.classes_, "./language_detection_model/label_encoder_classes.pt"
+)
 
 # Modeli kaydetme
 model.save_pretrained("./language_detection_model")

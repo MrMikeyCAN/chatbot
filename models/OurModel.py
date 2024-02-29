@@ -1,14 +1,48 @@
 import torch
 import torch.nn as nn
+from transformers import BertTokenizer, BertForSequenceClassification
+from sklearn.preprocessing import LabelEncoder
+
+
+# TODO Kendi tokenizer'ımızı oluşturuyoruz
+class Tokenizer:
+    def __init__(self):
+        pass
+
+    def tokenize(self, text):
+        # Metni karakterlerine ayırın ve her bir karakterin ASCII değerini alarak bir liste oluşturun
+        token_ids = [ord(char) for char in text]
+        # Elde edilen tokenleri bir tensor olarak dönüştürün
+        tensor = torch.tensor([token_ids])
+        return tensor
 
 
 # TODO language_detection block oluşturuyoruz ki dil algılama sağlanabilsin
+class LanguageClassifier:
+    def __init__(self, model_path):
+        self.tokenizer = BertTokenizer.from_pretrained(model_path)
+        self.model = BertForSequenceClassification.from_pretrained(model_path)
+        self.label_encoder = LabelEncoder()
+        self.label_encoder.classes_ = torch.load(
+            model_path + "/label_encoder_classes.pt"
+        )
+
+    def classify_text(self, text):
+        inputs = self.tokenizer(
+            text, return_tensors="pt", truncation=True, padding=True, max_length=128
+        )
+        outputs = self.model(**inputs)
+        logits = outputs.logits
+        predicted_class = torch.argmax(logits, dim=1).item()
+        predicted_label = self.label_encoder.inverse_transform([predicted_class])[0]
+        return predicted_label
 
 
 # TODO Training arguments oluşturuyoruz ki kodları güvenliği ve temizliği için
 class TrainArgumentsForOurModel:
     def __init__(
         self,
+        guessLanguage=False,
         embed_size=512,
         heads=8,
         dropout=0,
@@ -20,6 +54,7 @@ class TrainArgumentsForOurModel:
         num_layers=6,
         device="cpu",
         max_length=100,
+        model_path="./language_detection_model",
         norm_activite_func="LayerNorm",
     ):
         self.embed_size = embed_size
@@ -34,6 +69,8 @@ class TrainArgumentsForOurModel:
         self.num_layers = num_layers
         self.device = device
         self.max_length = max_length
+        self.model_path = model_path
+        self.guessLanguage = guessLanguage
 
 
 class AttentionBlock(nn.Module):
@@ -242,9 +279,14 @@ class Decoder(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, arguments: TrainArgumentsForOurModel):
+    def __init__(self, arguments: TrainArgumentsForOurModel, item):
 
         super(Transformer, self).__init__()
+
+        self.languageClassifier = LanguageClassifier(model_path=arguments.model_path)
+
+        if arguments.guessLanguage:
+            self.language = self.languageClassifier.classify_text(item)
 
         self.encoder = Encoder(
             arguments.src_vocab_size,
@@ -294,32 +336,82 @@ class Transformer(nn.Module):
 
 
 if __name__ == "__main__":
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(device)
 
-    x = torch.tensor([[1, 5, 6, 4, 3, 9, 5, 2, 0], [1, 8, 7, 3, 4, 5, 6, 7, 2]]).to(
-        device
-    )
-    trg = torch.tensor([[1, 7, 4, 3, 5, 9, 2, 0], [1, 5, 6, 2, 4, 7, 6, 2]]).to(device)
+    import matplotlib.pyplot as plt
 
-    src_pad_idx = 0
-    trg_pad_idx = 0
-    src_vocab_size = 10
-    trg_vocab_size = 10
-    trainArguments = TrainArgumentsForOurModel(
+    # Öncelikle, model için bir tokenizer oluşturalım
+    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
+
+    # Giriş ve çıkış cümlelerimizi tokenize edelim
+    input_sentence = "How are you?"
+    target_sentence = "Wie geht es dir?"
+
+    input_ids = tokenizer.encode(input_sentence, add_special_tokens=True)
+    target_ids = tokenizer.encode(target_sentence, add_special_tokens=True)
+
+    # Tensorlara dönüştürelim
+    input_tensor = torch.tensor([input_ids])
+    target_tensor = torch.tensor([target_ids])
+
+    # Eğitim için model parametrelerini belirleyelim
+    train_arguments = TrainArgumentsForOurModel(
         embed_size=512,
         heads=8,
-        dropout=0,
+        dropout=0.1,
         forward_expansion=4,
-        src_vocab_size=src_vocab_size,
-        trg_vocab_size=trg_vocab_size,
-        src_pad_idx=src_pad_idx,
-        trg_pad_idx=trg_pad_idx,
+        src_vocab_size=input_tensor.max().item()
+        + 1,  # +1, çünkü 0'dan başlamak yerine 1'den başlıyoruz
+        trg_vocab_size=target_tensor.max().item()
+        + 1,  # +1, çünkü 0'dan başlamak yerine 1'den başlıyoruz
         num_layers=6,
-        device=device,
+        device=torch.device("cuda" if torch.cuda.is_available() else "cpu"),
         max_length=100,
-        norm_activite_func="tanh",
+        norm_activite_func="layernorm",
+        guessLanguage=True,
     )
-    model = Transformer(trainArguments).to(device)
-    out = model(x, trg[:, :-1])
-    print(out.shape)
+
+    # Modeli oluşturalım
+    model = Transformer(train_arguments, item="Example")
+
+    # Eğitim için kayıp fonksiyonunu belirleyelim
+    criterion = nn.CrossEntropyLoss()
+
+    # Optimizasyon fonksiyonunu ve başlangıç öğrenme oranını belirleyelim
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+    # Öğrenme oranını izlemek için bir liste oluşturalım
+    learning_rates = []
+
+    # Eğitim verilerini belirleyelim
+    input_data = input_tensor.to(train_arguments.device)
+    target_data = target_tensor.to(train_arguments.device)
+
+    losses = []
+
+    # Modeli eğitelim
+    model.train()
+    for epoch in range(50):  # Örnek olarak 50 epoch için eğitim yapalım
+        optimizer.zero_grad()
+        output = model(
+            input_data, target_data[:, :-1]
+        )  # Çıkışın son endeksini atlayalım
+        output_dim = output.shape[-1]
+        output = output.contiguous().view(-1, output_dim)
+        target = (
+            target_data[:, 1:].contiguous().view(-1)
+        )  # Etiketlerin ilk endeksini atlayalım
+        loss = criterion(output, target)
+        loss.backward()
+        optimizer.step()
+
+        # Loss değerini kaydedelim
+        losses.append(loss.item())
+
+        print(f"Epoch {epoch+1}, Loss: {loss.item()}")
+
+    # Tabloyu oluşturalım
+    plt.plot(losses)
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Loss per Epoch")
+    plt.show()
+
