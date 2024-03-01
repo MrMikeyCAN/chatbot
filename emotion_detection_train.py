@@ -1,3 +1,4 @@
+import pickle
 import torch
 import torch.nn as nn
 from transformers import BertTokenizer
@@ -57,6 +58,10 @@ transformerModelArguments = TransformerModelArguments(
     guessLanguage=True,
 )
 
+
+with open("transformer_model_args.pkl", "wb") as f:
+    pickle.dump(transformerModelArguments, f)
+
 # Modeli oluşturalım
 model = Transformer(transformerModelArguments, item="Example")
 
@@ -73,7 +78,7 @@ target_data = target_tensor.to(transformerModelArguments.device)
 trainingArguments = TrainingArguments(
     epochs=10,
     model=model,
-    visualize=True,
+    visualize=False,
     input_data=input_tensor,
     target_data=target_tensor,
     checkpoints=5,
