@@ -70,13 +70,13 @@ from transformers import Seq2SeqTrainingArguments
 
 # Training arguments
 training_args = Seq2SeqTrainingArguments(
-    output_dir="./my_awesome_translation_model",
+    output_dir="./my_awesome_opus_books_model",
     per_device_train_batch_size=8,
     gradient_accumulation_steps=2,
     learning_rate=1e-5,
     warmup_steps=500,
-    max_steps=1,
-    fp16=False,  # Değiştirildi
+    max_steps=100000,
+    fp16=True,  # Değiştirildi
     evaluation_strategy="steps",
     per_device_eval_batch_size=8,
     save_steps=1000,
@@ -126,3 +126,5 @@ outputs = model.generate(
 
 
 tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+print(translator("Hello World"))
