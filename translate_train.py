@@ -75,8 +75,13 @@ training_args = Seq2SeqTrainingArguments(
     gradient_accumulation_steps=2,
     learning_rate=1e-5,
     warmup_steps=500,
+<<<<<<< HEAD
     max_steps=100000,
     fp16=True,  # Değiştirildi
+=======
+    max_steps=1000,
+    fp16=False,  # Değiştirildi
+>>>>>>> 118a5c3d0e701107159f17d6953f86a23922cedc
     evaluation_strategy="steps",
     per_device_eval_batch_size=8,
     save_steps=1000,
