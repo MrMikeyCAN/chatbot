@@ -87,12 +87,3 @@ trainingArguments = TrainingArguments(
 # Modeli eğitelim
 trainer = Trainer(args=trainingArguments)
 trainer.train()
-input_data = tokenizer.encode(
-    "this is a test for your understand",
-    add_special_tokens=True,
-    max_length=2048,
-    truncation=True,
-)
-
-input_data_tensor = torch.tensor([input_data])
-
