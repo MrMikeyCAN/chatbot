@@ -56,7 +56,7 @@ class TransformerModelArguments:
         device="cpu",
         max_length=100,
         model_path="./language_detection_model",
-        norm_activite_func="LayerNorm",
+        norm_activite_func="linear",
     ):
         self.embed_size = embed_size
         self.heads = heads
@@ -280,15 +280,9 @@ class Decoder(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, arguments: TransformerModelArguments, item):
+    def __init__(self, arguments: TransformerModelArguments):
 
         super(Transformer, self).__init__()
-
-        if arguments.guessLanguage:
-            self.languageClassifier = LanguageClassifier(
-                model_path=arguments.model_path
-            )
-            self.language = self.languageClassifier.classify_text(item)
 
         self.encoder = Encoder(
             arguments.src_vocab_size,
