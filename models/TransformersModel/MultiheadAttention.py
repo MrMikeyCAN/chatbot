@@ -18,7 +18,7 @@ qkv_layer = nn.Linear(input_dim, 3 * d_model)
 qkv = qkv_layer(X)
 # print(qkv.shape)
 
-# TODO Öngörülen boyut
+# TODO Oluşturacağmız attention mekanizmalarını kaça böleceğimiz
 num_heads = 8
 
 # TODO modeli boyutuna bölüyoruz tüm boyutları tek tek inceliyoruz
