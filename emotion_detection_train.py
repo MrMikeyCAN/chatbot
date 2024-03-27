@@ -87,3 +87,5 @@ trainingArguments = TrainingArguments(
 # Modeli eğitelim
 trainer = Trainer(args=trainingArguments)
 trainer.train()
+
+model.eval()
