@@ -84,4 +84,4 @@ class PositionalEncoding(nn.Module):
 
 pe = PositionalEncoding(d_model=6, max_sequence_length=10)
 # ! Her bir parçaladığımız bölüm ve cümle için seçenekler ve olası pozisyonlar oluştu
-print(pe.forward())
+print(pe())

@@ -15,28 +15,27 @@ from models.OurModel import (
 
 # TODO Veri yükleme ve hazırlama
 data = pd.read_csv("ED.csv")
-X = data["target"]
-y = data["labels"]
+X = data["target"].tolist()
+y = data["labels"].tolist()
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, random_state=2, train_size=0.1
 )
 
-X_train = X_train.tolist()
-y_train = y_train.tolist()
-
-
 tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 ## TODO girdileri oluşturuyoruz
-input_ids = tokenizer.encode(
-    X_train, add_special_tokens=True, max_length=2048, truncation=True
-)
+input_ids = [tokenizer.encode(
+    x, add_special_tokens=True, max_length=2048, truncation=True
+) for x in X_train]
+
 target_ids = tokenizer.encode(
-    y_train, add_special_tokens=True, max_length=2048, truncation=True
+    y_train, add_special_tokens=False, max_length=2048, truncation=True
 )
 
+for i in input_ids:
+    print(len(i))
 # Tensorlara dönüştürelim
-input_tensor = torch.tensor([input_ids])
+input_tensor = torch.tensor(input_ids)
 target_tensor = torch.tensor([target_ids])
 
 # Eğitim için model parametrelerini belirleyelim

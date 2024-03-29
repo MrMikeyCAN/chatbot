@@ -1,55 +1,65 @@
-"""import numpy as np
 import sounddevice as sd
-import matplotlib.pyplot as plt
-from pedalboard import Pedalboard, NoiseGate, Compressor, LowShelfFilter, Gain
-import noise_filter as nf
+import numpy as np
+import webrtcvad
+import wave
+import time
+import noisereduce as nr
 
-class VoicerSD:
-    def __init__(self, channels, rate, duration):
-        self.channels = channels
-        self.rate = rate
-        self.duration = duration
-        self.frames = []
-        self.waveform = np.array([])
+# Ses parametreleri
+MAX = 80
+DURATION = 20  # ms
+RATE = 16000  # webrtcvad için uygun örnek hızı
+CHANNELS = 1
+CHUNK_SIZE = int(DURATION * RATE / 1000)  # 20 ms of audio
 
-    def record(self):
-        print("Recording for {} seconds...".format(self.duration))
-        self.waveform = sd.rec(int(self.duration * self.rate), samplerate=self.rate, channels=self.channels, dtype='float32')
-        sd.wait()  # Wait until the recording is finished
+# VAD ayarı
+vad = webrtcvad.Vad(2)  # Agresiflik seviyesi ayarı
 
-    def draw_waveform(self, title="Waveform"):
-        plt.figure(figsize=(10, 4))
-        plt.plot(np.linspace(0, self.duration, num=len(self.waveform)), self.waveform)
-        plt.title(title)
-        plt.xlabel("Time (s)")
-        plt.ylabel("Amplitude")
-        plt.grid(True)
+# Ses akışını başlat
+print("Kayıt başladı...")
 
-    def draw_specgram(self, title="Spectrogram"):
-        plt.figure(figsize=(10, 4))
-        plt.specgram(self.waveform.flatten(), Fs=self.rate)
-        plt.title(title)
-        plt.xlabel("Time (s)")
-        plt.ylabel("Frequency (Hz)")
+silence_counter = 0
+frames = []
 
-# Create a VoicerSD instance
-voicer = VoicerSD(channels=1, rate=16000, duration=10)  # 10 seconds duration
-voicer.record()
+def callback(indata, frames, time, status):
+    global silence_counter
 
-# Draw waveform and spectrogram
-voicer.draw_waveform()
-voicer.draw_specgram()
+    # Gürültü azaltma
+    audio = indata.flatten()
+    reduced_noise = nr.reduce_noise(y=audio, sr=RATE)
+    data = (reduced_noise * 32768.0).astype(np.int16)
 
-# Setup the pedalboard
-board = Pedalboard([
-    NoiseGate(threshold_db=-30, ratio=1.5, release_ms=250),
-    Compressor(threshold_db=-16, ratio=2.5),
-    LowShelfFilter(cutoff_frequency_hz=500, gain_db=10, q=1),
-    Gain(gain_db=15)
-])
+    # VAD uygula
+    is_speech = vad.is_speech(data.tobytes(), RATE)
 
-audio_filter = nf.SoundFilter()
-audio_filter.clear(board=board,audio=[voicer.waveform.flatten()])
-audio_filter.playSounds()
+    print(f"Ses var: {is_speech}", silence_counter)
 
-plt.show()"""
+    if not is_speech:
+        silence_counter += 1
+    else:
+        silence_counter = 0
+
+    if silence_counter < MAX:
+        frames.extend(data)
+    else:
+        raise sd.CallbackStop
+
+try:
+    with sd.InputStream(samplerate=RATE, channels=1, dtype=np.int16, blocksize=CHUNK_SIZE, callback=callback):
+        while silence_counter < MAX:
+            sd.sleep(1000)  # Bekleme süresini bir saniye olarak ayarla
+except KeyboardInterrupt:
+    print("Kayıt durduruldu")
+except sd.CallbackStop:
+    pass
+
+# Kaydı dosyaya yaz
+file_name = "recording.wav"
+wf = wave.open(file_name, 'wb')
+wf.setnchannels(CHANNELS)
+wf.setsampwidth(2)  # int16 için 2 byte
+wf.setframerate(RATE)
+wf.writeframes(np.array(frames).tobytes())
+wf.close()
+
+print("Kayıt tamamlandı.")

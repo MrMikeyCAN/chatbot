@@ -2,7 +2,7 @@ import sounddevice as sd
 import numpy as np
 import wave
 import matplotlib.pyplot as plt
-import noise_filter as nf
+import Speech2Text.noise_filter as nf
 from pedalboard import *
 
 class Voicer:
@@ -23,7 +23,7 @@ class Voicer:
     def save_wave(self, filename):
         wave_file = wave.open(filename, 'wb')
         wave_file.setnchannels(self.channels)
-        wave_file.setsampwidth(self.audio.get_sample_size(self.format))
+        wave_file.setsampwidth(wave.get_sample_size(self.format))
         wave_file.setframerate(self.rate)
         wave_file.writeframes(b''.join(self.frames))
         wave_file.close()
