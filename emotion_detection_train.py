@@ -85,4 +85,10 @@ trainingArguments = TrainingArguments(
 
 # Modeli eğitelim
 trainer = Trainer(args=trainingArguments)
+<<<<<<< HEAD
 trainer.train()
+=======
+trainer.train()
+
+model.eval()
+>>>>>>> 83839e5a3ff37673ffb0d5d2ac26692f9bf17faa
