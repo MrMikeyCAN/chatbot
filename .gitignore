@@ -18,7 +18,6 @@ __pycache__/
 /language_detection_bert/
 /language_detection_model/
 *.pth
-test.py 
 test-2.py
 /my_awesome_opus_books_model/
 /emotion_detection_model/
