@@ -178,7 +178,7 @@ english_to_index = {v: k for k, v in enumerate(english_vocabulary)}
 
 
 # Limit Number of sentences
-TOTAL_SENTENCES = 2000000
+TOTAL_SENTENCES = 20000000
 english_sentences = english_sentences[:TOTAL_SENTENCES]
 turkish_sentences = turkish_sentences[:TOTAL_SENTENCES]
 english_sentences = [sentence.rstrip("\n").lower() for sentence in english_sentences]
@@ -227,8 +227,6 @@ for index in range(len(turkish_sentences)):
 
 print(f"Number of sentences: {len(turkish_sentences)}")
 print(f"Number of valid sentences: {len(valid_sentence_indicies)}")
-
-print(valid_sentence_indicies)
 
 turkish_sentences = [turkish_sentences[i] for i in valid_sentence_indicies]
 english_sentences = [english_sentences[i] for i in valid_sentence_indicies]
@@ -494,8 +492,8 @@ translation = translate("why did they do this?")
 print(translation)
 
 
-translation = translate("Hi I am mert")
+translation = translate("hi i am mert")
 print(translation)
 
-translation = translate("Hello how are you")
+translation = translate("hello how are you")
 print(translation)
