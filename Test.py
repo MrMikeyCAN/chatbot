@@ -9,7 +9,7 @@ translate_file = "TR2EN.txt"
 turkish_sentences = []
 english_sentences = []
 
-with open(translate_file, "r") as file:
+with open(translate_file, "r", encoding="utf8") as file:
     lines = file.readlines()
     for line in lines:
         words = line.strip().split("\t")
@@ -458,7 +458,7 @@ def train():
     plt.show()
 
 
-train()
+#train()
 
 
 transformer.eval()
