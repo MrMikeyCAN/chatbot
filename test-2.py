@@ -202,6 +202,8 @@ model = Transformer(
 # Modeli oluştururken aynı parametreleri kullanmalısınız
 model.load_state_dict(torch.load("model_weights.pkl"))
 
+NEG_INFTY = -1e9
+
 
 def create_masks(eng_batch, kn_batch):
     num_sentences = len(eng_batch)
@@ -276,8 +278,6 @@ def translate(eng_sentence):
             break
     return kn_sentence[0]
 
-
-NEG_INFTY = NEG_INFTY = -1e9
 
 translation = translate("hi i am mert")
 print(translation)
