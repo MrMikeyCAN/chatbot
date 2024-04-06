@@ -356,104 +356,112 @@ num_epochs = 100
 
 train_losses = []
 
-for epoch in range(num_epochs):
-    print(f"Epoch {epoch}")
-    iterator = iter(train_loader)
-    epoch_loss = 0.0  # Her epoch için toplam loss değerini saklamak için
-    for batch_num, batch in enumerate(iterator):
-        transformer.train()
-        eng_batch, kn_batch = batch
-        (
-            encoder_self_attention_mask,
-            decoder_self_attention_mask,
-            decoder_cross_attention_mask,
-        ) = create_masks(eng_batch, kn_batch)
-        optim.zero_grad()
-        kn_predictions = transformer(
-            eng_batch,
-            kn_batch,
-            encoder_self_attention_mask.to(device),
-            decoder_self_attention_mask.to(device),
-            decoder_cross_attention_mask.to(device),
-            enc_start_token=False,
-            enc_end_token=False,
-            dec_start_token=True,
-            dec_end_token=True,
-        )
-        labels = transformer.decoder.sentence_embedding.batch_tokenize(
-            kn_batch, start_token=False, end_token=True
-        )
-        loss = criterian(
-            kn_predictions.view(-1, kn_vocab_size).to(device),
-            labels.view(-1).to(device),
-        ).to(device)
-        valid_indicies = torch.where(
-            labels.view(-1) == turkish_to_index[PADDING_TOKEN], False, True
-        )
-        loss = loss.sum() / valid_indicies.sum()
-        loss.backward()
-        optim.step()
-        epoch_loss += (
-            loss.item()
-        )  # Her batch için loss değerini toplam epoch lossuna ekle
-        if batch_num % 100 == 0:
-            print(f"Iteration {batch_num} : {loss.item()}")
-        # train_losses.append(loss.item())
-        if batch_num % 100 == 0:
-            print(f"Iteration {batch_num} : {loss.item()}")
-            print(f"English: {eng_batch[0]}")
-            print(f"Turkish Translation: {kn_batch[0]}")
-            kn_sentence_predicted = torch.argmax(kn_predictions[0], axis=1)
-            predicted_sentence = ""
-            for idx in kn_sentence_predicted:
-                if idx == turkish_to_index[END_TOKEN]:
-                    break
-                predicted_sentence += index_to_turkish[idx.item()]
-            print(f"Turkish Prediction: {predicted_sentence}")
 
-            transformer.eval()
-            kn_sentence = ("",)
-            eng_sentence = ("should we go to the mall?",)
-            for word_counter in range(max_sequence_length):
-                (
-                    encoder_self_attention_mask,
-                    decoder_self_attention_mask,
-                    decoder_cross_attention_mask,
-                ) = create_masks(eng_sentence, kn_sentence)
-                predictions = transformer(
-                    eng_sentence,
-                    kn_sentence,
-                    encoder_self_attention_mask.to(device),
-                    decoder_self_attention_mask.to(device),
-                    decoder_cross_attention_mask.to(device),
-                    enc_start_token=False,
-                    enc_end_token=False,
-                    dec_start_token=True,
-                    dec_end_token=False,
+def train():
+
+    for epoch in range(num_epochs):
+        print(f"Epoch {epoch}")
+        iterator = iter(train_loader)
+        epoch_loss = 0.0  # Her epoch için toplam loss değerini saklamak için
+        for batch_num, batch in enumerate(iterator):
+            transformer.train()
+            eng_batch, kn_batch = batch
+            (
+                encoder_self_attention_mask,
+                decoder_self_attention_mask,
+                decoder_cross_attention_mask,
+            ) = create_masks(eng_batch, kn_batch)
+            optim.zero_grad()
+            kn_predictions = transformer(
+                eng_batch,
+                kn_batch,
+                encoder_self_attention_mask.to(device),
+                decoder_self_attention_mask.to(device),
+                decoder_cross_attention_mask.to(device),
+                enc_start_token=False,
+                enc_end_token=False,
+                dec_start_token=True,
+                dec_end_token=True,
+            )
+            labels = transformer.decoder.sentence_embedding.batch_tokenize(
+                kn_batch, start_token=False, end_token=True
+            )
+            loss = criterian(
+                kn_predictions.view(-1, kn_vocab_size).to(device),
+                labels.view(-1).to(device),
+            ).to(device)
+            valid_indicies = torch.where(
+                labels.view(-1) == turkish_to_index[PADDING_TOKEN], False, True
+            )
+            loss = loss.sum() / valid_indicies.sum()
+            loss.backward()
+            optim.step()
+            epoch_loss += (
+                loss.item()
+            )  # Her batch için loss değerini toplam epoch lossuna ekle
+            if batch_num % 100 == 0:
+                print(f"Iteration {batch_num} : {loss.item()}")
+            # train_losses.append(loss.item())
+            if batch_num % 100 == 0:
+                print(f"Iteration {batch_num} : {loss.item()}")
+                print(f"English: {eng_batch[0]}")
+                print(f"Turkish Translation: {kn_batch[0]}")
+                kn_sentence_predicted = torch.argmax(kn_predictions[0], axis=1)
+                predicted_sentence = ""
+                for idx in kn_sentence_predicted:
+                    if idx == turkish_to_index[END_TOKEN]:
+                        break
+                    predicted_sentence += index_to_turkish[idx.item()]
+                print(f"Turkish Prediction: {predicted_sentence}")
+
+                transformer.eval()
+                kn_sentence = ("",)
+                eng_sentence = ("should we go to the mall?",)
+                for word_counter in range(max_sequence_length):
+                    (
+                        encoder_self_attention_mask,
+                        decoder_self_attention_mask,
+                        decoder_cross_attention_mask,
+                    ) = create_masks(eng_sentence, kn_sentence)
+                    predictions = transformer(
+                        eng_sentence,
+                        kn_sentence,
+                        encoder_self_attention_mask.to(device),
+                        decoder_self_attention_mask.to(device),
+                        decoder_cross_attention_mask.to(device),
+                        enc_start_token=False,
+                        enc_end_token=False,
+                        dec_start_token=True,
+                        dec_end_token=False,
+                    )
+                    next_token_prob_distribution = predictions[0][
+                        word_counter
+                    ]  # not actual probs
+                    next_token_index = torch.argmax(next_token_prob_distribution).item()
+                    next_token = index_to_turkish[next_token_index]
+                    kn_sentence = (kn_sentence[0] + next_token,)
+                    if next_token == END_TOKEN:
+                        break
+
+                print(
+                    f"Evaluation translation (should we go to the mall?) : {kn_sentence}"
                 )
-                next_token_prob_distribution = predictions[0][
-                    word_counter
-                ]  # not actual probs
-                next_token_index = torch.argmax(next_token_prob_distribution).item()
-                next_token = index_to_turkish[next_token_index]
-                kn_sentence = (kn_sentence[0] + next_token,)
-                if next_token == END_TOKEN:
-                    break
+                print("-------------------------------------------")
+                train_losses.append(epoch_loss / len(train_loader))
+                torch.save(transformer.state_dict(), "model_weights.pkl")
 
-            print(f"Evaluation translation (should we go to the mall?) : {kn_sentence}")
-            print("-------------------------------------------")
-            train_losses.append(epoch_loss / len(train_loader))
-            torch.save(transformer.state_dict(), "model_weights.pkl")
+    plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.title("Training Loss Over Epochs")
+    plt.legend()
+    plt.show()
+
+
+train()
 
 
 transformer.eval()
-
-plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss")
-plt.xlabel("Epoch")
-plt.ylabel("Loss")
-plt.title("Training Loss Over Epochs")
-plt.legend()
-plt.show()
 
 
 def translate(eng_sentence):
@@ -483,17 +491,3 @@ def translate(eng_sentence):
         if next_token == END_TOKEN:
             break
     return kn_sentence[0]
-
-
-translation = translate("what should we do when the day starts?")
-print(translation)
-
-translation = translate("why did they do this?")
-print(translation)
-
-
-translation = translate("hi i am mert")
-print(translation)
-
-translation = translate("hello how are you")
-print(translation)
