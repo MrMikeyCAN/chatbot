@@ -508,7 +508,7 @@ def train():
 
 
 
-train()
+#train()
 
 
 transformer.eval()
