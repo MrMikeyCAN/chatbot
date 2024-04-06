@@ -2,17 +2,24 @@ from models.TransformerModel import Transformer  # this is the transformer.py fi
 import torch
 import numpy as np
 
+translate_file = "TR2EN.txt"
 
-english_file = "test_english.txt"  # replace this path with appropriate one
-kannada_file = "test_turkish.txt"  # replace this path with appropriate one
+turkish_sentences = []
+english_sentences = []
 
-# Generated this by filtering Appendix code
+with open(translate_file, "r") as file:
+    lines = file.readlines()
+    for line in lines:
+        words = line.strip().split("\t")
+        if len(words) == 2:
+            turkish_sentences.append(words[1])
+            english_sentences.append(words[0])
+
 
 START_TOKEN = "<START>"
 PADDING_TOKEN = "<PAD>"
 END_TOKEN = "<END>"
-
-kannada_vocabulary = [
+turkish_vocabulary = [
     START_TOKEN,
     " ",
     "!",
@@ -45,13 +52,7 @@ kannada_vocabulary = [
     "=",
     ">",
     "?",
-    "@",
-    "[",
-    "'",
-    "]",
-    "^",
-    "_",
-    "`",
+    "ˌ",
     "a",
     "b",
     "c",
@@ -84,10 +85,6 @@ kannada_vocabulary = [
     "x",
     "y",
     "z",
-    "{",
-    "|",
-    "}",
-    "~",
     PADDING_TOKEN,
     END_TOKEN,
 ]
@@ -166,39 +163,32 @@ english_vocabulary = [
     END_TOKEN,
 ]
 
-
-index_to_kannada = {k: v for k, v in enumerate(kannada_vocabulary)}
-kannada_to_index = {v: k for k, v in enumerate(kannada_vocabulary)}
+index_to_turkish = {k: v for k, v in enumerate(turkish_vocabulary)}
+turkish_to_index = {v: k for k, v in enumerate(turkish_vocabulary)}
 index_to_english = {k: v for k, v in enumerate(english_vocabulary)}
 english_to_index = {v: k for k, v in enumerate(english_vocabulary)}
 
 
-with open(english_file, "r") as file:
-    english_sentences = file.readlines()
-with open(kannada_file, "r") as file:
-    kannada_sentences = file.readlines()
-
 # Limit Number of sentences
-TOTAL_SENTENCES = 30
+TOTAL_SENTENCES = 200000
 english_sentences = english_sentences[:TOTAL_SENTENCES]
-kannada_sentences = kannada_sentences[:TOTAL_SENTENCES]
+turkish_sentences = turkish_sentences[:TOTAL_SENTENCES]
 english_sentences = [sentence.rstrip("\n").lower() for sentence in english_sentences]
-kannada_sentences = [sentence.rstrip("\n") for sentence in kannada_sentences]
+turkish_sentences = [sentence.rstrip("\n") for sentence in turkish_sentences]
 
-print(english_sentences, kannada_sentences)
 
 import numpy as np
 
 PERCENTILE = 97
 print(
-    f"{PERCENTILE}th percentile length Kannada: {np.percentile([len(x) for x in kannada_sentences], PERCENTILE)}"
+    f"{PERCENTILE}th percentile length Turkish: {np.percentile([len(x) for x in turkish_sentences], PERCENTILE)}"
 )
 print(
     f"{PERCENTILE}th percentile length English: {np.percentile([len(x) for x in english_sentences], PERCENTILE)}"
 )
 
 
-max_sequence_length = 10
+max_sequence_length = 200
 
 
 def is_valid_tokens(sentence, vocab):
@@ -215,29 +205,24 @@ def is_valid_length(sentence, max_sequence_length):
 
 
 valid_sentence_indicies = []
-
-
-for index in range(len(kannada_sentences)):
-    kannada_sentence, english_sentence = (
-        kannada_sentences[index],
+for index in range(len(turkish_sentences)):
+    turkish_sentence, english_sentence = (
+        turkish_sentences[index],
         english_sentences[index],
     )
     if (
-        is_valid_length(kannada_sentence, max_sequence_length)
+        is_valid_length(turkish_sentence, max_sequence_length)
         and is_valid_length(english_sentence, max_sequence_length)
-        and is_valid_tokens(kannada_sentence, kannada_vocabulary)
+        and is_valid_tokens(turkish_sentence, turkish_vocabulary)
     ):
         valid_sentence_indicies.append(index)
 
-print(f"Number of sentences: {len(kannada_sentences)}")
+print(f"Number of sentences: {len(turkish_sentences)}")
 print(f"Number of valid sentences: {len(valid_sentence_indicies)}")
 
 
-kannada_sentences = [kannada_sentences[i] for i in valid_sentence_indicies]
+turkish_sentences = [turkish_sentences[i] for i in valid_sentence_indicies]
 english_sentences = [english_sentences[i] for i in valid_sentence_indicies]
-
-
-kannada_sentences[:3]
 
 
 import torch
@@ -249,7 +234,7 @@ num_heads = 8
 drop_prob = 0.1
 num_layers = 1
 max_sequence_length = 200
-kn_vocab_size = len(kannada_vocabulary)
+kn_vocab_size = len(turkish_vocabulary)
 
 transformer = Transformer(
     d_model,
@@ -260,7 +245,7 @@ transformer = Transformer(
     max_sequence_length,
     kn_vocab_size,
     english_to_index,
-    kannada_to_index,
+    turkish_to_index,
     START_TOKEN,
     END_TOKEN,
     PADDING_TOKEN,
@@ -271,18 +256,18 @@ from torch.utils.data import Dataset, DataLoader
 
 class TextDataset(Dataset):
 
-    def __init__(self, english_sentences, kannada_sentences):
+    def __init__(self, english_sentences, turkish_sentences):
         self.english_sentences = english_sentences
-        self.kannada_sentences = kannada_sentences
+        self.turkish_sentences = turkish_sentences
 
     def __len__(self):
         return len(self.english_sentences)
 
     def __getitem__(self, idx):
-        return self.english_sentences[idx], self.kannada_sentences[idx]
+        return self.english_sentences[idx], self.turkish_sentences[idx]
 
 
-dataset = TextDataset(english_sentences, kannada_sentences)
+dataset = TextDataset(english_sentences, turkish_sentences)
 
 train_loader = DataLoader(dataset, batch_size)
 iterator = iter(train_loader)
@@ -297,7 +282,7 @@ for batch_num, batch in enumerate(iterator):
 from torch import nn
 
 criterian = nn.CrossEntropyLoss(
-    ignore_index=kannada_to_index[PADDING_TOKEN], reduction="none"
+    ignore_index=turkish_to_index[PADDING_TOKEN], reduction="none"
 )
 
 # When computing the loss, we are ignoring cases when the label is the padding token
@@ -360,7 +345,7 @@ def create_masks(eng_batch, kn_batch):
 transformer.train()
 transformer.to(device)
 total_loss = 0
-num_epochs = 10
+num_epochs = 100
 
 for epoch in range(num_epochs):
     print(f"Epoch {epoch}")
@@ -393,7 +378,7 @@ for epoch in range(num_epochs):
             labels.view(-1).to(device),
         ).to(device)
         valid_indicies = torch.where(
-            labels.view(-1) == kannada_to_index[PADDING_TOKEN], False, True
+            labels.view(-1) == turkish_to_index[PADDING_TOKEN], False, True
         )
         loss = loss.sum() / valid_indicies.sum()
         loss.backward()
@@ -402,14 +387,14 @@ for epoch in range(num_epochs):
         if batch_num % 100 == 0:
             print(f"Iteration {batch_num} : {loss.item()}")
             print(f"English: {eng_batch[0]}")
-            print(f"Kannada Translation: {kn_batch[0]}")
+            print(f"Turkish Translation: {kn_batch[0]}")
             kn_sentence_predicted = torch.argmax(kn_predictions[0], axis=1)
             predicted_sentence = ""
             for idx in kn_sentence_predicted:
-                if idx == kannada_to_index[END_TOKEN]:
+                if idx == turkish_to_index[END_TOKEN]:
                     break
-                predicted_sentence += index_to_kannada[idx.item()]
-            print(f"Kannada Prediction: {predicted_sentence}")
+                predicted_sentence += index_to_turkish[idx.item()]
+            print(f"Turkish Prediction: {predicted_sentence}")
 
             transformer.eval()
             kn_sentence = ("",)
@@ -435,7 +420,7 @@ for epoch in range(num_epochs):
                     word_counter
                 ]  # not actual probs
                 next_token_index = torch.argmax(next_token_prob_distribution).item()
-                next_token = index_to_kannada[next_token_index]
+                next_token = index_to_turkish[next_token_index]
                 kn_sentence = (kn_sentence[0] + next_token,)
                 if next_token == END_TOKEN:
                     break
