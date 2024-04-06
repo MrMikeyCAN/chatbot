@@ -14,9 +14,11 @@ with open(translate_file, "r", encoding="utf8") as file:
     for line in lines:
         words = line.strip().split("\t")
         if len(words) == 2:
-            turkish_sentences.append(words[1])
-            english_sentences.append(words[0])
+            turkish_sentences.append(words[1].lower())
+            english_sentences.append(words[0].lower())
 
+
+print(turkish_sentences[1:100])
 
 START_TOKEN = "<START>"
 PADDING_TOKEN = "<PAD>"
@@ -281,7 +283,6 @@ iterator = iter(train_loader)
 
 
 for batch_num, batch in enumerate(iterator):
-    print(batch)
     if batch_num > 3:
         break
 
@@ -458,7 +459,7 @@ def train():
     plt.show()
 
 
-#train()
+train()
 
 
 transformer.eval()
