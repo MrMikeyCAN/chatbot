@@ -445,7 +445,7 @@ for epoch in range(num_epochs):
             print(f"Evaluation translation (should we go to the mall?) : {kn_sentence}")
             print("-------------------------------------------")
             train_losses.append(epoch_loss / len(train_loader))
-            torch.save(transformer, "model_weights.pkl")
+            torch.save(transformer.state_dict(), "model_weights.pkl")
 
 
 transformer.eval()
@@ -488,4 +488,14 @@ def translate(eng_sentence):
 
 
 translation = translate("what should we do when the day starts?")
+print(translation)
+
+translation = translate("why did they do this?")
+print(translation)
+
+
+translation = translate("Hi I am mert")
+print(translation)
+
+translation = translate("Hello how are you")
 print(translation)
