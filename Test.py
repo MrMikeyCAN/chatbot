@@ -1,6 +1,8 @@
 from models.TransformerModel import Transformer  # this is the transformer.py file
 import torch
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 translate_file = "TR2EN.txt"
 
@@ -52,7 +54,13 @@ turkish_vocabulary = [
     "=",
     ">",
     "?",
-    "ˌ",
+    "@",
+    "[",
+    "\\",
+    "]",
+    "^",
+    "_",
+    "`",
     "a",
     "b",
     "c",
@@ -124,7 +132,7 @@ english_vocabulary = [
     "?",
     "@",
     "[",
-    "'",
+    "\\",
     "]",
     "^",
     "_",
@@ -220,6 +228,7 @@ for index in range(len(turkish_sentences)):
 print(f"Number of sentences: {len(turkish_sentences)}")
 print(f"Number of valid sentences: {len(valid_sentence_indicies)}")
 
+print(valid_sentence_indicies)
 
 turkish_sentences = [turkish_sentences[i] for i in valid_sentence_indicies]
 english_sentences = [english_sentences[i] for i in valid_sentence_indicies]
@@ -347,9 +356,12 @@ transformer.to(device)
 total_loss = 0
 num_epochs = 100
 
+train_losses = []
+
 for epoch in range(num_epochs):
     print(f"Epoch {epoch}")
     iterator = iter(train_loader)
+    epoch_loss = 0.0  # Her epoch için toplam loss değerini saklamak için
     for batch_num, batch in enumerate(iterator):
         transformer.train()
         eng_batch, kn_batch = batch
@@ -383,6 +395,11 @@ for epoch in range(num_epochs):
         loss = loss.sum() / valid_indicies.sum()
         loss.backward()
         optim.step()
+        epoch_loss += (
+            loss.item()
+        )  # Her batch için loss değerini toplam epoch lossuna ekle
+        if batch_num % 100 == 0:
+            print(f"Iteration {batch_num} : {loss.item()}")
         # train_losses.append(loss.item())
         if batch_num % 100 == 0:
             print(f"Iteration {batch_num} : {loss.item()}")
@@ -427,3 +444,48 @@ for epoch in range(num_epochs):
 
             print(f"Evaluation translation (should we go to the mall?) : {kn_sentence}")
             print("-------------------------------------------")
+            train_losses.append(epoch_loss / len(train_loader))
+            torch.save(transformer, "model_weights.pkl")
+
+
+transformer.eval()
+
+plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.title("Training Loss Over Epochs")
+plt.legend()
+plt.show()
+
+
+def translate(eng_sentence):
+    eng_sentence = (eng_sentence,)
+    kn_sentence = ("",)
+    for word_counter in range(max_sequence_length):
+        (
+            encoder_self_attention_mask,
+            decoder_self_attention_mask,
+            decoder_cross_attention_mask,
+        ) = create_masks(eng_sentence, kn_sentence)
+        predictions = transformer(
+            eng_sentence,
+            kn_sentence,
+            encoder_self_attention_mask.to(device),
+            decoder_self_attention_mask.to(device),
+            decoder_cross_attention_mask.to(device),
+            enc_start_token=False,
+            enc_end_token=False,
+            dec_start_token=True,
+            dec_end_token=False,
+        )
+        next_token_prob_distribution = predictions[0][word_counter]
+        next_token_index = torch.argmax(next_token_prob_distribution).item()
+        next_token = index_to_turkish[next_token_index]
+        kn_sentence = (kn_sentence[0] + next_token,)
+        if next_token == END_TOKEN:
+            break
+    return kn_sentence[0]
+
+
+translation = translate("what should we do when the day starts?")
+print(translation)
