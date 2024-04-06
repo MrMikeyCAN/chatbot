@@ -178,7 +178,7 @@ english_to_index = {v: k for k, v in enumerate(english_vocabulary)}
 
 
 # Limit Number of sentences
-TOTAL_SENTENCES = 200000
+TOTAL_SENTENCES = 2000000
 english_sentences = english_sentences[:TOTAL_SENTENCES]
 turkish_sentences = turkish_sentences[:TOTAL_SENTENCES]
 english_sentences = [sentence.rstrip("\n").lower() for sentence in english_sentences]
