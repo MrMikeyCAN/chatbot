@@ -226,7 +226,7 @@ english_to_index = {v: k for k, v in enumerate(english_vocabulary)}
 
 
 # Limit Number of sentences
-TOTAL_SENTENCES = 20000000
+TOTAL_SENTENCES = 10000
 english_sentences = english_sentences[:TOTAL_SENTENCES]
 turkish_sentences = turkish_sentences[:TOTAL_SENTENCES]
 english_sentences = [sentence.rstrip("\n").lower() for sentence in english_sentences]
@@ -446,9 +446,7 @@ def train():
             epoch_loss += (
                 loss.item()
             )  # Her batch için loss değerini toplam epoch lossuna ekle
-            if batch_num % 100 == 0:
-                print(f"Iteration {batch_num} : {loss.item()}")
-            # train_losses.append(loss.item())
+            #train_losses.append(loss.item())
             if batch_num % 100 == 0:
                 print(f"Iteration {batch_num} : {loss.item()}")
                 print(f"English: {eng_batch[0]}")
@@ -494,15 +492,20 @@ def train():
                     f"Evaluation translation (should we go to the mall?) : {kn_sentence}"
                 )
                 print("-------------------------------------------")
-                train_losses.append(epoch_loss / len(train_loader))
                 torch.save(transformer.state_dict(), "model_weights.pkl")
+                
+        train_losses.append(epoch_loss / len(train_loader))
 
     plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss")
     plt.xlabel("Epoch")
     plt.ylabel("Loss")
     plt.title("Training Loss Over Epochs")
     plt.legend()
+    print("Length of num_epochs:", len(range(1, num_epochs + 1)))
+    print("Length of train_losses:", len(train_losses))
+
     plt.show()
+
 
 
 train()
