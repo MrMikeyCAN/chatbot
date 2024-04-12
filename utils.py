@@ -18,8 +18,8 @@ def text_to_speech(bot_name: str, text: str, lang="en"):
 
 from pydub import AudioSegment
 
-sound1 = AudioSegment.from_file("sound.wav")+15
-sound2 = AudioSegment.from_file("combined_speech_crowd.wav")-10
+sound1 = AudioSegment.from_file("sound.wav")
+sound2 = AudioSegment.from_file("combined_speech_crowd.wav")-20
 
 combined = sound1.overlay(sound2)
 

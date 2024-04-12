@@ -18,10 +18,7 @@ dosyalar1 = os.listdir(klasor1)
 dosyalar2 = os.listdir(klasor2)
 
 # Her bir dosya için klasör1'den bir dosya al ve klasör2'den rastgele bir dosya ile birleştir
-i=1
 for dosya1 in dosyalar1:
-    i += 1
-    if(i > 6787):
         # İlk ses dosyasını yükle
         ses1 = AudioSegment.from_file(os.path.join(klasor1, dosya1))
 
