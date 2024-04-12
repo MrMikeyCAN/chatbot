@@ -3,7 +3,7 @@ __pycache__/
 
 # Ignore all sound files
 *.mp3
-*.wav
+
 *.waw
 
 #Ignore data files
