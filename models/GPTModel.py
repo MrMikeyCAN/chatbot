@@ -3,8 +3,8 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 # hyperparameters
-batch_size = 512  # ? Kaç tane parelel girdi oluşturacak
-block_size = 4096  # ? En fazla oluşturacağı girdi
+batch_size = 8  # ? Kaç tane parelel girdi oluşturacak
+block_size = 64  # ? En fazla oluşturacağı girdi
 max_iters = 5000
 eval_interval = 500
 learning_rate = 3e-4
