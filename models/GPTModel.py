@@ -6,7 +6,7 @@ from torch.nn import functional as F
 batch_size = 8  # ? Kaç tane parelel girdi oluşturacak
 block_size = 64  # ? En fazla oluşturacağı girdi
 max_iters = 5000
-eval_interval = 500
+eval_interval = 1
 learning_rate = 3e-4
 device = "cuda" if torch.cuda.is_available() else "cpu"
 eval_iters = 200
