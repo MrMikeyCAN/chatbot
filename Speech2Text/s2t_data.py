@@ -1,4 +1,12 @@
 from datasets import load_dataset
+import time
+import numpy as np
 
-cv_16 = load_dataset("mozilla-foundation/common_voice_16_1", "en")
-dataset = load_dataset("covost2", "tr_en",data_dir="tr")
+start = time.time()
+
+dataset_tr = load_dataset("covost2", "tr_en", data_dir="Datasets/tr", trust_remote_code=True)
+# dataset_zh_CH = load_dataset("covost2", "zh-CN_en",data_dir="Datasets/zh-CN", trust_remote_code=True)
+
+end = time.time()
+print(end-start, "second")
+

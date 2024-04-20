@@ -1,23 +1,18 @@
-import torch
 import torchaudio
 import matplotlib.pyplot as plt
 
-filename = "Datasets\\tr\\clips\\common_voice_tr_17341269.mp3"
+# Ses dosyasını yükle
+waveform, sample_rate = torchaudio.load('Datasets/tr/clips/common_voice_tr_17341269.mp3')
 
-def plot_specgram(waveform, sample_rate, title="Spectrogram"):
-    waveform = waveform.numpy()
+# Spektrogramı hesapla
+spectrogram_transform = torchaudio.transforms.Spectrogram()
+spectrogram = spectrogram_transform(waveform)
 
-    num_channels, num_frames = waveform.shape
-
-    figure, axes = plt.subplots(num_channels, 1)
-    if num_channels == 1:
-        axes = [axes]
-    for c in range(num_channels):
-        axes[c].specgram(waveform[c], Fs=sample_rate)
-        if num_channels > 1:
-            axes[c].set_ylabel(f"Channel {c+1}")
-    figure.suptitle(title)
-
-waveform, sample_rate = torchaudio.load(filename)
-
-plot_specgram(waveform, sample_rate)
+# Spektrogramı görselleştir
+plt.figure()
+plt.imshow(spectrogram.log2()[0, :, :].numpy(), cmap='viridis')
+plt.colorbar()
+plt.title("Spektrogram")
+plt.xlabel("Time Bins")
+plt.ylabel("Frequency Bins")
+plt.show()
