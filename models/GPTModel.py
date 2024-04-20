@@ -302,7 +302,7 @@ def trainer(
             iter_values.append(iter)
             Generate_Text("Hello world!", max_new_tokens)
 
-            if checkpoints != 0 and iter % checkpoints == 0:
+            if iter != 0 and checkpoints != 0 and iter % checkpoints == 0:
                 torch.save(model.state_dict(), f"chechpoint/checkpoint:{iter}.pkl")
                 print("checkpoint successfuly saved")
 
@@ -331,6 +331,3 @@ def trainer(
 
 
 trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=10, checkpoints=100)
-
-
-# open('more.txt', 'w').write(decode(m.generate(context, max_new_tokens=10000)[0].tolist()))
