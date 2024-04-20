@@ -1,4 +1,3 @@
-from models.TransformerModel import Transformer
 from Test import create_masks, translate, transformer
 import torch
 import numpy as np

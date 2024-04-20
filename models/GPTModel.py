@@ -3,10 +3,10 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 # hyperparameters
-batch_size = 64  # how many independent sequences will we process in parallel?
-block_size = 256  # what is the maximum context length for predictions?
+batch_size = 8  # ? Kaç tane parelel girdi oluşturacak
+block_size = 64  # ? En fazla oluşturacağı girdi
 max_iters = 5000
-eval_interval = 500
+eval_interval = 1
 learning_rate = 3e-4
 device = "cuda" if torch.cuda.is_available() else "cpu"
 eval_iters = 200
@@ -18,7 +18,7 @@ dropout = 0.2
 
 torch.manual_seed(1337)
 
-# wget https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
+
 with open("input.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
@@ -213,7 +213,7 @@ class GPTLanguageModel(nn.Module):
 
 model = GPTLanguageModel()
 m = model.to(device)
-# print the number of parameters in the model
+
 print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
 
 # create a PyTorch optimizer
