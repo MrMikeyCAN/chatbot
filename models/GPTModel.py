@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 import matplotlib.pyplot as plt
+import math
 
 
 class Hyperparameters:
@@ -187,11 +188,28 @@ class Block(nn.Module):
         return x
 
 
+class PositionalEncoding:
+    def __init__(self, block_size, n_embd):
+        self.block_size = block_size
+        self.n_embd = n_embd
+
+    def _generate_positional_encoding(block_size, n_embd):
+        position = torch.arange(block_size).unsqueeze(1)
+        div_term = torch.exp(torch.arange(0, n_embd, 2) * -(math.log(10000.0) / n_embd))
+        positional_encoding = torch.zeros(block_size, n_embd)
+        positional_encoding[:, 0::2] = torch.sin(position * div_term)
+        positional_encoding[:, 1::2] = torch.cos(position * div_term)
+        return nn.Parameter(positional_encoding, requires_grad=True)
+
+
 class GPTLanguageModel(nn.Module):
 
     def __init__(self, hyperparams: Hyperparameters):
         super().__init__()
         self.block_size = hyperparams.block_size
+        self.positional_encoding = PositionalEncoding._generate_positional_encoding(
+            block_size=hyperparams.block_size, n_embd=hyperparams.n_embd
+        )
         # each token directly reads off the logits for the next token from a lookup table
         self.token_embedding_table = nn.Embedding(vocab_size, hyperparams.n_embd)
         self.position_embedding_table = nn.Embedding(
@@ -227,9 +245,13 @@ class GPTLanguageModel(nn.Module):
 
         # idx and targets are both (B,T) tensor of integers
         tok_emb = self.token_embedding_table(idx)  # (B,T,C)
-        pos_emb = self.position_embedding_table(torch.arange(T, device=device))  # (T,C)
+
+        pos_emb = self.positional_encoding[:T, :].unsqueeze(0)  # (T,C)
+
         x = tok_emb + pos_emb  # (B,T,C)
+
         x = self.blocks(x)  # (B,T,C)
+
         x = self.ln_f(x)  # (B,T,C)
         logits = self.lm_head(x)  # (B,T,vocab_size)
 
@@ -248,6 +270,7 @@ class GPTLanguageModel(nn.Module):
         for _ in range(max_new_tokens):
             # crop idx to the last block_size tokens
             idx_cond = idx[:, -self.block_size :]
+
             # get the predictions
             logits, loss = self(idx_cond)
             # focus only on the last time step
@@ -287,6 +310,9 @@ def trainer(
     val_losses = []
     iter_values = []
     optimizer = torch.optim.AdamW(model.parameters(), lr=hyperparams.learning_rate)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=hyperparams.max_iters
+    )
     eval_interval = hyperparams.eval_interval
     max_iters = hyperparams.max_iters
     for iter in range(hyperparams.max_iters):
@@ -316,6 +342,7 @@ def trainer(
         optimizer.zero_grad(set_to_none=True)
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
     # Plot losses
     if visualization:
@@ -330,4 +357,4 @@ def trainer(
     print("Model weights saved successfully")
 
 
-trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=10, checkpoints=100)
+trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=50, checkpoints=100)
