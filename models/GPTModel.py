@@ -267,8 +267,19 @@ m = model.to(device)
 print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
 
 
+# generate from the model
+def Generate_Text(context: str, max_new_tokens: int = 500):
+    context = torch.tensor(encode(context), device=device)[None, :]
+    print(decode(m.generate(context, max_new_tokens)[0].tolist()))
+
+
 # create a PyTorch optimizer
-def trainer(visualization: bool, hyperparams: Hyperparameters, checkpoints: int = 0):
+def trainer(
+    visualization: bool,
+    hyperparams: Hyperparameters,
+    checkpoints: int = 0,
+    max_new_tokens: int = 500,
+):
     train_losses = []
     val_losses = []
     iter_values = []
@@ -286,6 +297,8 @@ def trainer(visualization: bool, hyperparams: Hyperparameters, checkpoints: int 
             train_losses.append(train_loss)
             val_losses.append(val_loss)
             iter_values.append(iter)
+            Generate_Text("Hello world!", max_new_tokens)
+            print("------------------------------------")
 
         # sample a batch of data
         xb, yb = get_batch("train", hyperparams)
@@ -311,15 +324,8 @@ def trainer(visualization: bool, hyperparams: Hyperparameters, checkpoints: int 
     torch.save(model.state_dict(), "model_weights.pth")
 
 
-trainer(hyperparams=hyperparams, visualization=True)
-
-
-# generate from the model
-def Generate_Text(context: str):
-    context = torch.tensor(encode(context), device=device)[None, :]
-    print(decode(m.generate(context, max_new_tokens=500)[0].tolist()))
+trainer(hyperparams=hyperparams, visualization=True,max_new_tokens=10)
 
 
 # open('more.txt', 'w').write(decode(m.generate(context, max_new_tokens=10000)[0].tolist()))
-
 Generate_Text("hi I am mert")
