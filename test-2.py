@@ -2,7 +2,7 @@ from models.GPTModel import hyperparams, GPTLanguageModel, decode, encode
 import torch
 
 model = GPTLanguageModel(hyperparams)
-model.load_state_dict(torch.load("chechpoint/checkpoint:0.pkl"))
+model.load_state_dict(torch.load("chechpoint/checkpoint:1300.pkl"))
 
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
