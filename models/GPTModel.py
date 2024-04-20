@@ -268,7 +268,10 @@ print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
 
 
 # generate from the model
-def Generate_Text(context: str, max_new_tokens: int = 500):
+def Generate_Text(
+    context: str,
+    max_new_tokens: int = 500,
+):
     context = torch.tensor(encode(context), device=device)[None, :]
     print(decode(m.generate(context, max_new_tokens)[0].tolist()))
 
@@ -298,6 +301,11 @@ def trainer(
             val_losses.append(val_loss)
             iter_values.append(iter)
             Generate_Text("Hello world!", max_new_tokens)
+
+            if checkpoints != 0 and iter % checkpoints == 0:
+                torch.save(model.state_dict(), f"chechpoint/checkpoint:{iter}.pkl")
+                print("checkpoint successfuly saved")
+
             print("------------------------------------")
 
         # sample a batch of data
@@ -309,9 +317,6 @@ def trainer(
         loss.backward()
         optimizer.step()
 
-    if checkpoints != 0 and iter % checkpoints == 0:
-        torch.save(model.state_dict(), f"checkpoint/checkpoint:{iter}.pth")
-
     # Plot losses
     if visualization:
         plt.plot(iter_values, train_losses, label="Train Loss")
@@ -322,10 +327,10 @@ def trainer(
         plt.legend()
         plt.show()
     torch.save(model.state_dict(), "model_weights.pth")
+    print("Model weights saved successfully")
 
 
-trainer(hyperparams=hyperparams, visualization=True,max_new_tokens=10)
+trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=10, checkpoints=100)
 
 
 # open('more.txt', 'w').write(decode(m.generate(context, max_new_tokens=10000)[0].tolist()))
-Generate_Text("hi I am mert")
