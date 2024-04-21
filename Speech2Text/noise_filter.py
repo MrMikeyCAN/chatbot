@@ -2,6 +2,7 @@ from df.enhance import enhance, init_df
 import numpy as np
 import torchaudio
 import torch
+import time
 
 
 class NoiseFilter:
@@ -46,3 +47,13 @@ class NoiseFilter:
         transform = torchaudio.transforms.Resample(self.sample_rate, new_sr)
         self.audio = transform(self.audio)
         self.sample_rate = new_sr
+
+    def test(self, reading_filename: str, saving_filename: str = None):
+        print("Start test")
+        start = time.time()
+        self.load(reading_filename)
+        enchanted = self.noise_filter()
+        if saving_filename is not None:
+            self.save(saving_filename, enchanted)
+        end = time.time()
+        print("Testing time: ", end - start, "second")

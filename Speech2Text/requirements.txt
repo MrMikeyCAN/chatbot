@@ -1,0 +1,12 @@
+torch
+torchvision
+torchaudio
+numpy
+deepfilternet
+audiofile
+rVADfast
+sounddevice
+datasets
+librosa
+setuptools
+matplotlib

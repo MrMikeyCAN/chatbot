@@ -1,0 +1,32 @@
+Deepfilternetin çalışabilmesi için önce rust kurulu olması gerekiyor
+
+https://rustup.rs/
+
+windows ise exe dosyasını indirip çalıştırıyoruz gerekli kurulumu yapıyoruz
+
+ondan sonra terminale
+
+pip install -r requirements.txt
+pip3 install -r requirements.txt
+
+yazıp çalıştırınca kurulum bitiyor
+
+eğitme işlemi için datasets içerisinde verilerin kurulu olması gerekli
+
+şimdilik 2 dil için dosya var dataset indirmek için
+
+https://commonvoice.mozilla.org/tr/datasets
+
+linkinde tr için common voice 4 indirip tar dosyasını Datasets içinde tr klasörü oluşturup tr klasörüne ekliyoruz
+
+windows için cmd ile tr klasörünü açıp
+
+tar xvzf tr.tar yazıyoruz sonra tr.tar dosyasını silebiliriz
+
+common voice 4 olmasının sebebi covost2 kullanmamız
+
+covost2 kullanma sebebimiz ayrı bir çeviri modeli oluşturmak yerine normal bir şekilde çeviri yapmak
+
+bu şekilde çeviri için ayrı bir modelimiz olmayacak ve sesten otomatik ingilizceye çeviri yapabiliyor olucaz
+
+ingilizce veri seti için covost2 olmayacağı için çünkü zaten ingilizce istediğimiz common voice verisetinin kurabiliriz
