@@ -1,16 +1,21 @@
-from models.TransformerModel import Transformer
-from Test import create_masks, translate, transformer
+from models.GPTModel import hyperparams, GPTLanguageModel, decode, encode
 import torch
-import numpy as np
+
+model = GPTLanguageModel(hyperparams)
+model.load_state_dict(torch.load("chechpoint/checkpoint:1300.pkl"))
+
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+m = model.to(device)
+
+
+def Generate_Text(
+    context: str,
+    max_new_tokens: int = 500,
+):
+    context = torch.tensor(encode(context), device=device)[None, :]
+    print(decode(m.generate(context, max_new_tokens)[0].tolist()))
+
 
 # Modeli oluştururken aynı parametreleri kullanmalısınız
-transformer.load_state_dict(torch.load("model_weights.pkl"))
-
-
-translation = translate("hi i am mert")
-print(translation)
-
-translation = translate("hello how are you")
-print(translation)
+Generate_Text("Hi I am mert")
