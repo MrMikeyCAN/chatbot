@@ -1,6 +1,7 @@
+## Mikrofon alınınca tamamlanacak
+
 import sounddevice as sd
 import vad
-
 
 vad = vad.Vad()
 

@@ -1,6 +1,7 @@
+## Yeni başlandı stt
+
 from datasets import load_dataset
 import time
-import numpy as np
 
 start = time.time()
 

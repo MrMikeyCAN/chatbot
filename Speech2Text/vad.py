@@ -1,3 +1,4 @@
+## yorum satırları eklenecek (Tamamlandı)
 import audiofile
 from rVADfast import rVADfast
 import numpy as np

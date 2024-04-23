@@ -1,12 +1,15 @@
 torch
-torchvision
 torchaudio
 numpy
+pandas
 deepfilternet
 audiofile
 rVADfast
 sounddevice
+scikit-learn
 datasets
 librosa
 setuptools
 matplotlib
+IPython
+keras
