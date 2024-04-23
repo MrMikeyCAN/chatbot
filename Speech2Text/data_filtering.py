@@ -9,7 +9,7 @@ data_list = []
 def add_data(files, path, language):
     for file in files:
         data_list.append({
-            'feature': os.path.join(path, file),
+            'features': os.path.join(path, file),
             'labels': language
         })
 
