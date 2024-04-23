@@ -38,7 +38,7 @@ Yapay zekanın eğitim aşamaları
         burdaki satırları terminalde ayrı ayrı çalıştırarak
         tensorflowu windows ortamında cuda ile kurabilir ve test edebilirsiniz
 
-        NOT: cudnn yoksa cudnn silinmelidir
+        NOT: conda kurulu değilse kurulmalı ve cudnn yoksa silinmelidir 
         
         1-"python3 -m pip install tensorflow[and-cuda]"
         
