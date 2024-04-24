@@ -35,11 +35,11 @@ class Hyperparameters:
 
 # hyperparameters
 device = "cuda" if torch.cuda.is_available() else "cpu"
-hyperparams = Hyperparameters(8, 64, 5000, 1, 3e-4, device, 200, 384, 6, 6, 0.2)
+hyperparams = Hyperparameters(64, 128, 5000, 1, 3e-4, device, 400, 384, 6, 12, 0.2)
 # ------------
 
 
-torch.manual_seed(1337)
+torch.manual_seed(42)
 
 
 with open("input2.txt", "r", encoding="utf-8") as f:
