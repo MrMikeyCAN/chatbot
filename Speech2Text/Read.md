@@ -18,16 +18,21 @@ Yapay zekanın eğitim aşamaları
 
 2-Veri seti kurulumu bittikten sonra yapılması gereken işlem kütüphanelerin kurulumudur
     rust kurulumu:
+
         windows için:
             "https://rustup.rs/" adresine gidip exe dosyasını indirip kurulumu tamamlıyoruz
         macOS için:
             terminale "curl –-proto ‘=https’ –tlsv1.2 -sSf https://sh.rustup.rs | sh" komutunu yazıp kurulumu tamamlıyoruz
         Linux için:
             terminale "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh" komutunu yazıp kurulumu tamamlıyoruz
-    python kütüphane kurulumları:
+    
+python kütüphane kurulumları:
         terminali açıp Speech2Text konumuna gidiyoruz
-        "pip/pip3 install -r requirements.txt" yazıp python kütüphanelerini kuruyoruz
-        tensorflowu cuda ile kuracağımız için ayrı kurucağız
+        
+        "pip/pip3 install -r requirements.txt" 
+yazıp python kütüphanelerini kuruyoruz
+        
+tensorflowu cuda ile kuracağımız için ayrı kurucağız
 
         1-"conda install -c conda-forge cudatoolkit=cuda_surumunuz cudnn="varsa_cudnn_surumunuz""
 
@@ -43,11 +48,11 @@ Yapay zekanın eğitim aşamaları
         1-"python3 -m pip install tensorflow[and-cuda]"
         
         2-"python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))""
+
+burdaki satırları terminalde ayrı ayrı çalıştırarak tensorflowu linux ortamında cuda ile kurabilir ve test edebilirsiniz
         
-        burdaki satırları terminalde ayrı ayrı çalıştırarak
-        tensorflowu linux ortamında cuda ile kurabilir ve test edebilirsiniz
-        
-        NOT: cpu ile kurulucaksa terminale "pip/pip3 install tensorflow" yazılması yeterli
+NOT: cpu ile kurulucaksa terminale "pip/pip3 install tensorflow" yazılması yeterli
+
 
 
 3-Yapay zekanın eğitilmesi için veri hazırlığı gerek data_filtering.py dosyasını terminal ile çalıştırıyoruz

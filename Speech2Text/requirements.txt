@@ -11,3 +11,4 @@ datasets
 librosa
 setuptools
 matplotlib
+keras
