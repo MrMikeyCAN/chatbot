@@ -35,32 +35,37 @@ class Hyperparameters:
 
 # hyperparameters
 device = "cuda" if torch.cuda.is_available() else "cpu"
-hyperparams = Hyperparameters(64, 128, 5000, 1, 3e-4, device, 400, 384, 6, 12, 0.2)
+hyperparams = Hyperparameters(32, 64, 5000, 1, 3e-4, device, 200, 384, 6, 6, 0.2)
 # ------------
 
 
 torch.manual_seed(42)
 
 
-with open("input2.txt", "r", encoding="utf-8") as f:
+import torch
+
+with open("GPT.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
-# here are all the unique characters that occur in this text
-chars = sorted(list(set(text)))
-vocab_size = len(chars)
-# create a mapping from characters to integers
-stoi = {ch: i for i, ch in enumerate(chars)}
-itos = {i: ch for i, ch in enumerate(chars)}
-encode = lambda s: [
-    stoi[c] for c in s
-]  # encoder: take a string, output a list of integers
-decode = lambda l: "".join(
-    [itos[i] for i in l]
-)  # decoder: take a list of integers, output a string
+# Split the text into words
+words = text.split()
+vocab_size = len(set(words))
+# Create a mapping from words to integers
+stoi = {w: i for i, w in enumerate(set(words))}
+itos = {i: w for i, w in enumerate(set(words))}
+
+
+def encode(sentence):
+    return [stoi[word] for word in sentence.split()]
+
+
+def decode(indices):
+    return " ".join(itos[i] for i in indices)
+
 
 # Train and test splits
 data = torch.tensor(encode(text), dtype=torch.long)
-n = int(0.9 * len(data))  # first 90% will be train, rest val
+n = int(0.9 * len(data))
 train_data = data[:n]
 val_data = data[n:]
 
@@ -304,7 +309,7 @@ def trainer(
     visualization: bool,
     hyperparams: Hyperparameters,
     checkpoints: int = 0,
-    max_new_tokens: int = 500,
+    max_new_tokens: int = 5,
 ):
     train_losses = []
     val_losses = []
@@ -326,7 +331,7 @@ def trainer(
             train_losses.append(train_loss)
             val_losses.append(val_loss)
             iter_values.append(iter)
-            Generate_Text("Hello world!", max_new_tokens)
+            Generate_Text("My name is", max_new_tokens)
 
             if iter != 0 and checkpoints != 0 and iter % checkpoints == 0:
                 torch.save(model.state_dict(), f"chechpoint/checkpoint:{iter}.pkl")
