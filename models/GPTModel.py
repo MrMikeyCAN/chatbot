@@ -374,6 +374,6 @@ def trainer(
     print("Model weights saved successfully")
 
 
-# trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=10, checkpoints=100)
+trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=10, checkpoints=100)
 
-print(Generate_Text("My name is", max_new_tokens=1))
+# print(Generate_Text("My name is", max_new_tokens=1))
