@@ -35,7 +35,7 @@ class Hyperparameters:
 
 # hyperparameters
 device = "cuda" if torch.cuda.is_available() else "cpu"
-hyperparams = Hyperparameters(16, 64, 5000, 1, 5e-4, device, 200, 384, 6, 3, 0.2)
+hyperparams = Hyperparameters(2, 4, 5000, 1, 5e-4, device, 200, 384, 6, 1, 0.2)
 # ------------
 
 
@@ -292,8 +292,6 @@ class GPTLanguageModel(nn.Module):
 model = GPTLanguageModel(hyperparams)
 m = model.to(device)
 
-print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
-
 
 # generate from the model
 def Generate_Text(
@@ -320,6 +318,7 @@ def trainer(
     )
     eval_interval = hyperparams.eval_interval
     max_iters = hyperparams.max_iters
+    print(sum(p.numel() for p in m.parameters()) / 1e6, "M parameters")
     for iter in range(hyperparams.max_iters):
 
         # every once in a while evaluate the loss on train and val sets

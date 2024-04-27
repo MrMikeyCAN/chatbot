@@ -30,3 +30,4 @@ __pycache__/
 /text_to_speech_pretrained_model/
 .fake
 ModelData.txt
+/checkpoint/*.pkl
