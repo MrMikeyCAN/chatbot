@@ -35,7 +35,7 @@ class Hyperparameters:
 
 # hyperparameters
 device = "cuda" if torch.cuda.is_available() else "cpu"
-hyperparams = Hyperparameters(2, 4, 5000, 1, 5e-4, device, 200, 384, 6, 1, 0.2)
+hyperparams = Hyperparameters(1, 4, 5000, 1, 5e-4, device, 200, 10, 6, 20, 0.2)
 # ------------
 
 
@@ -44,7 +44,7 @@ torch.manual_seed(42)
 
 import torch
 
-with open("ModelData.txt", "r", encoding="utf-8") as f:
+with open("input2.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
 # Split the text into words
