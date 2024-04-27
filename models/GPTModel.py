@@ -35,7 +35,7 @@ class Hyperparameters:
 
 # hyperparameters
 device = "cuda" if torch.cuda.is_available() else "cpu"
-hyperparams = Hyperparameters(32, 64, 5000, 1, 3e-4, device, 200, 384, 6, 6, 0.2)
+hyperparams = Hyperparameters(16, 64, 5000, 1, 5e-4, device, 200, 384, 6, 3, 0.2)
 # ------------
 
 
@@ -44,7 +44,7 @@ torch.manual_seed(42)
 
 import torch
 
-with open("GPT.txt", "r", encoding="utf-8") as f:
+with open("ModelData.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
 # Split the text into words
@@ -362,4 +362,4 @@ def trainer(
     print("Model weights saved successfully")
 
 
-trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=50, checkpoints=100)
+trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=5, checkpoints=100)
