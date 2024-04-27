@@ -48,6 +48,7 @@ with open("ModelData.txt", "r", encoding="utf-8") as f:
     text = f.read()
 
 # Split the text into words
+
 words = text.split()
 vocab_size = len(set(words))
 # Create a mapping from words to integers
@@ -272,20 +273,20 @@ class GPTLanguageModel(nn.Module):
 
     def generate(self, idx, max_new_tokens):
         # idx is (B, T) array of indices in the current context
-        for _ in range(max_new_tokens):
-            # crop idx to the last block_size tokens
-            idx_cond = idx[:, -self.block_size :]
 
-            # get the predictions
-            logits, loss = self(idx_cond)
-            # focus only on the last time step
-            logits = logits[:, -1, :]  # becomes (B, C)
-            # apply softmax to get probabilities
-            probs = F.softmax(logits, dim=-1)  # (B, C)
-            # sample from the distribution
-            idx_next = torch.multinomial(probs, num_samples=1)  # (B, 1)
-            # append sampled index to the running sequence
-            idx = torch.cat((idx, idx_next), dim=1)  # (B, T+1)
+        # crop idx to the last block_size tokens
+        idx_cond = idx[:, -self.block_size :]
+
+        # get the predictions
+        logits, loss = self(idx_cond)
+        # focus only on the last time step
+        logits = logits[:, -1, :]  # becomes (B, C)
+        # apply softmax to get probabilities
+        probs = F.softmax(logits, dim=-1)  # (B, C)
+        # sample from the distribution
+        idx_next = torch.multinomial(probs, num_samples=1)  # (B, 1)
+        # append sampled index to the running sequence
+        idx = torch.cat((idx, idx_next), dim=1)  # (B, T+1)
         return idx
 
 
@@ -298,8 +299,20 @@ def Generate_Text(
     context: str,
     max_new_tokens: int = 500,
 ):
-    context = torch.tensor(encode(context), device=device)[None, :]
-    print(decode(m.generate(context, max_new_tokens)[0].tolist()))
+    generated_text = ""
+    context = torch.tensor(encode(context.lower()), device=device)[None, :]
+    end_of_the_line = False
+    for _ in range(max_new_tokens):
+        generated_word = m.generate(context, max_new_tokens)[0].tolist()
+        for words in generated_text.split():
+            if words == "<END>":
+                end_of_the_line = True
+                break
+        if end_of_the_line:
+            break
+        else:
+            generated_text += decode(generated_word)
+    return generated_text
 
 
 # create a PyTorch optimizer
@@ -307,7 +320,7 @@ def trainer(
     visualization: bool,
     hyperparams: Hyperparameters,
     checkpoints: int = 0,
-    max_new_tokens: int = 5,
+    max_new_tokens: int = 100,
 ):
     train_losses = []
     val_losses = []
@@ -330,7 +343,7 @@ def trainer(
             train_losses.append(train_loss)
             val_losses.append(val_loss)
             iter_values.append(iter)
-            Generate_Text("My name is", max_new_tokens)
+            print(Generate_Text("My name is", max_new_tokens))
 
             if iter != 0 and checkpoints != 0 and iter % checkpoints == 0:
                 torch.save(model.state_dict(), f"chechpoint/checkpoint:{iter}.pkl")
@@ -361,4 +374,6 @@ def trainer(
     print("Model weights saved successfully")
 
 
-trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=5, checkpoints=100)
+trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=10, checkpoints=100)
+
+Generate_Text("My name is", max_new_tokens=100)

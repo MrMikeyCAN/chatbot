@@ -1,17 +1,16 @@
 source_texts = []
 
-import pandas as pd
+end_token = "<END>"
 
-data = pd.read_csv("LLM.csv")
 
-labels = data.context
+print(source_texts[:1])
 
-for text in labels:
-    source_texts.append(text)
+with open("ModelData.txt", "r", encoding="utf-8") as f:
+    data = f.read().lower().strip().split("\n")
 
-with open("ModelData.txt", "r", encoding="utf-8") as file:
-    for line in file:
-        source_texts.append(line.strip().lower())
+for text in data:
+    lines_with_end = text + " " + end_token + " "
+    source_texts.append(lines_with_end)
 
 with open("ModelData.txt", "w", encoding="utf-8") as file:
     for text in source_texts:
