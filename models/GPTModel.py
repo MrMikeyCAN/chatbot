@@ -20,22 +20,26 @@ class Hyperparameters:
         n_layer,
         dropout,
     ):
+        # * Batch size
         self.batch_size = batch_size
+        # * Block size
         self.block_size = block_size
         self.max_iters = max_iters
         self.eval_interval = eval_interval
         self.learning_rate = learning_rate
         self.device = device
         self.eval_iters = eval_iters
+        # * Gömülü katman sayısı
         self.n_embd = n_embd
         self.n_head = n_head
+        # * Katman sayısı (Kaç farklı sonuç sallayacağını seçer)
         self.n_layer = n_layer
         self.dropout = dropout
 
 
 # hyperparameters
 device = "cuda" if torch.cuda.is_available() else "cpu"
-hyperparams = Hyperparameters(1, 4, 5000, 1, 5e-4, device, 200, 10, 6, 20, 0.2)
+hyperparams = Hyperparameters(64, 128, 5000, 1, 1e-4, device, 200, 100, 6, 20, 0.2)
 # ------------
 
 
@@ -272,21 +276,23 @@ class GPTLanguageModel(nn.Module):
         return logits, loss
 
     def generate(self, idx, max_new_tokens):
-        # idx is (B, T) array of indices in the current context
+        for _ in range(max_new_tokens):
+            # crop idx to the last block_size tokens
+            idx_cond = idx[:, -self.block_size :]
 
-        # crop idx to the last block_size tokens
-        idx_cond = idx[:, -self.block_size :]
-
-        # get the predictions
-        logits, loss = self(idx_cond)
-        # focus only on the last time step
-        logits = logits[:, -1, :]  # becomes (B, C)
-        # apply softmax to get probabilities
-        probs = F.softmax(logits, dim=-1)  # (B, C)
-        # sample from the distribution
-        idx_next = torch.multinomial(probs, num_samples=1)  # (B, 1)
-        # append sampled index to the running sequence
-        idx = torch.cat((idx, idx_next), dim=1)  # (B, T+1)
+            # get the predictions
+            logits, loss = self(idx_cond)
+            # focus only on the last time step
+            logits = logits[:, -1, :]  # becomes (B, C)
+            # apply softmax to get probabilities
+            probs = F.softmax(logits, dim=-1)  # (B, C)
+            # sample from the distribution
+            idx_next = torch.multinomial(probs, num_samples=1)  # (B, 1)
+            # append sampled index to the running sequence
+            idx = torch.cat((idx, idx_next), dim=1)  # (B, T+1)
+            if "<END>" in decode(idx[0].tolist()):
+                print("-------------FINISH-------------")
+                break
         return idx
 
 
@@ -300,18 +306,8 @@ def Generate_Text(
     max_new_tokens: int = 500,
 ):
     generated_text = ""
-    context = torch.tensor(encode(context.lower()), device=device)[None, :]
-    end_of_the_line = False
-    for _ in range(max_new_tokens):
-        generated_word = m.generate(context, max_new_tokens)[0].tolist()
-        for words in generated_text.split():
-            if words == "<END>":
-                end_of_the_line = True
-                break
-        if end_of_the_line:
-            break
-        else:
-            generated_text += decode(generated_word)
+    context = torch.tensor(encode(context), device=device)[None, :]
+    generated_text += decode(m.generate(context, max_new_tokens)[0].tolist())
     return generated_text
 
 
@@ -343,10 +339,10 @@ def trainer(
             train_losses.append(train_loss)
             val_losses.append(val_loss)
             iter_values.append(iter)
-            print(Generate_Text("My name is", max_new_tokens))
+            print(Generate_Text("my name is", max_new_tokens))
 
             if iter != 0 and checkpoints != 0 and iter % checkpoints == 0:
-                torch.save(model.state_dict(), f"chechpoint/checkpoint:{iter}.pkl")
+                torch.save(model.state_dict(), f"chechpoints/checkpoint:{iter}.pkl")
                 print("checkpoint successfuly saved")
 
             print("------------------------------------")
@@ -374,6 +370,6 @@ def trainer(
     print("Model weights saved successfully")
 
 
-trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=10, checkpoints=100)
+# trainer(hyperparams=hyperparams, visualization=True, max_new_tokens=5, checkpoints=100)
 
 # print(Generate_Text("My name is", max_new_tokens=1))

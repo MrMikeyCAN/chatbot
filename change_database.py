@@ -19,8 +19,8 @@ def remove_whitespace(input_file, output_file):
     print(f"Boşluklar başarıyla temizlendi. Sonuçlar '{output_file}' dosyasına kaydedildi.")
 
 # Input ve output dosya isimlerini belirt
-input_file = 'input_no_speakers.txt'
-output_file = 'output.txt'
+input_file = 'input2.txt'
+output_file = 'input2.txt'
 
 # Boşlukları temizle ve yeni dosyaya yaz
 remove_whitespace(input_file, output_file)
