@@ -29,3 +29,5 @@ __pycache__/
 /k_mert_can/
 /text_to_speech_pretrained_model/
 .fake
+ModelData.txt
+/chechpoints/
