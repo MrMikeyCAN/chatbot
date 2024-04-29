@@ -1,14 +1,1 @@
-torch
-torchaudio
-numpy
-pandas
-deepfilternet
-audiofile
-rVADfast
-sounddevice
-scikit-learn
-datasets
-librosa
-setuptools
-matplotlib
-keras
+# Düzenleniyor şimdili gerekli kütüphaneleri kodalara bakarak yükleyin
