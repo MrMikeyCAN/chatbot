@@ -31,3 +31,4 @@ __pycache__/
 .fake
 ModelData.txt
 /chechpoints/
+/checkpoints/
