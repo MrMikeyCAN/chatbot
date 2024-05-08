@@ -6,7 +6,7 @@ import math
 import os
 import time
 
-
+device = "cuda" if torch.cuda.is_available() else "cpu"
 # ! Hyper parametreler model için gerekli tüm parametreleri içerir ve de bir çok gerekli kodu
 class Hyperparameters:
     def __init__(
@@ -20,6 +20,7 @@ class Hyperparameters:
         vocab_size,
         encoder,
         decoder,
+        device,
     ):
         # * Batch size
         self.batch_size = batch_size
@@ -34,10 +35,11 @@ class Hyperparameters:
         self.vocab_size = vocab_size
         self.encoder = encoder
         self.decoder = decoder
+        self.device = device
 
 
-# hyperparameters
-device = "cuda" if torch.cuda.is_available() else "cpu"
+    # hyperparameters
+
 # ------------
 
 torch.manual_seed(42)
@@ -78,9 +80,9 @@ def get_batch(split, hyperparams: Hyperparameters, trainParameters: TrainParamet
     # generate a small batch of data of inputs x and targets y
     data = trainParameters.train_data if split == "train" else trainParameters.val_data
     ix = torch.randint(len(data) - hyperparams.block_size, (hyperparams.batch_size,))
-    x = torch.stack([data[i : i + hyperparams.block_size] for i in ix])
-    y = torch.stack([data[i + 1 : i + hyperparams.block_size + 1] for i in ix])
-    x, y = x.to(device), y.to(device)
+    x = torch.stack([data[i: i + hyperparams.block_size] for i in ix]).to(device)
+    y = torch.stack([data[i + 1: i + hyperparams.block_size + 1] for i in ix]).to(device)
+    x, y = x.to(trainParameters.device), y.to(trainParameters.device)
     return x, y
 
 
@@ -292,7 +294,7 @@ class ModelFuncs:
     ):
         self.hyperparams = hyperparams
         self.train_param = train_params
-        self.model = GPTLanguageModel(self.hyperparams)
+        self.model = GPTLanguageModel(self.hyperparams).to(device)
         self.m = model.to(device)
 
     def Generate_Text(

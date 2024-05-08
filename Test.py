@@ -4,8 +4,10 @@ from models.GPTModel import (
     GPTLanguageModel,
     ModelFuncs,
 )
-
 import torch
+
+device =torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(device)
 
 with open("input2.txt", "r", encoding="utf-8") as f:
     text = f.read()
@@ -38,11 +40,12 @@ hyperParams = Hyperparameters(
     block_size=128,
     decoder=decode,
     encoder=encode,
+    device=device,
 )
 
 trainParams = TrainParameters(
     learning_rate=2e-4,
-    device="cuda" if torch.cuda.is_available() else "cpu",
+    device=device,
     max_iters=5000,
     checkpoint=100,
     decoder=decode,
@@ -53,8 +56,10 @@ trainParams = TrainParameters(
     text=text,
 )
 
-model = GPTLanguageModel(hyperParams)
-
+model = GPTLanguageModel(hyperParams).to(device)
 modelFuncs = ModelFuncs(hyperparams=hyperParams, train_params=trainParams, model=model)
-
+modelFuncs.m = modelFuncs.m.to(device)
+print("Model cihazı:", next(model.parameters()).device)
+print("Train params cihazı:", trainParams.device)
+print("Hyper params cihazı:", hyperParams.device)
 modelFuncs.train()

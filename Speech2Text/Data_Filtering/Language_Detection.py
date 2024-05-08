@@ -1,12 +1,10 @@
-# yorum satırları eklenecek (Tamamlandı)
-
 import csv
 import os
 from sklearn.model_selection import train_test_split
 
 data_list = []
 
-
+# Path ve Language değerlerinin oluşturluması
 def add_data(files, path, language):
     for file in files:
         data_list.append({
@@ -15,6 +13,7 @@ def add_data(files, path, language):
         })
 
 
+# Klasörleri okuma
 def process_folders(path):
     i = 0
     for root, dirs, files in os.walk(path):
@@ -25,15 +24,20 @@ def process_folders(path):
             i += 1
 
 
+# İşlemler
 base_path = "../Datasets"
 process_folders(base_path)
 
+# Veri split aşaması
 train_data, test_data = train_test_split(data_list, test_size=0.2, random_state=42)
 
+# Csv dosyalarının isimlendirmeleri
 fields = ["path", "language"]
 train_filename = "../Datasets/STT_Datasets/train.csv"
 test_filename = "../Datasets/STT_Datasets/test.csv"
 
+
+# Csv dosyalarını yaz
 with open(train_filename, "w", encoding="utf8", newline='') as train_csv:
     writer = csv.DictWriter(train_csv, fieldnames=fields)
     writer.writeheader()
