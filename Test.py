@@ -5,8 +5,6 @@ from models.GPTModel import (
     ModelFuncs,
 )
 
-from utils import save_to_csv
-
 import torch
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -65,4 +63,4 @@ modelFuncs.m = modelFuncs.m.to(device)
 print("Model cihazı:", next(model.parameters()).device)
 print("Train params cihazı:", trainParams.device)
 print("Hyper params cihazı:", hyperParams.device)
-modelFuncs.train()
+# modelFuncs.train()

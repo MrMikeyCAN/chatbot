@@ -1,11 +1,10 @@
+import math
+import time
+
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-import matplotlib.pyplot as plt
-import math
-import os
-import time
-from utils import save_to_csv
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -350,29 +349,7 @@ class ModelFuncs:
         eval_interval = self.train_param.eval_interval
         max_iters = self.train_param.max_iters
 
-        if not os.path.exists(dirName):
-            os.makedirs(dirName)
-
-        hyperparams_text = {
-            'vocab_size': hyperparams.vocab_size,
-            'n_embd': hyperparams.n_embd,
-            'n_head': hyperparams.n_head,
-            'n_layer': hyperparams.n_layer,
-            'dropout': hyperparams.dropout,
-            'batch_size': hyperparams.dropout,
-            'block_size': hyperparams.block_size,
-            'decoder': hyperparams.decoder,
-            'encoder': hyperparams.encoder,
-            'device': hyperparams.device,
-        }
-
-        # Convert hyperparameters to a list of dictionaries
-        data = [hyperparams_text]
-
-        # Define headers
-        headers = list(hyperparams_text.keys())
         # Save hyperparameters to CSV
-        save_to_csv(headers, data, file_path=f"/checkpoints/{dirName}/HyperParams.csv")
 
         print(sum(p.numel() for p in self.m.parameters()) / 1e6, "M parameters")
         for iter in range(self.train_param.max_iters):
@@ -392,7 +369,7 @@ class ModelFuncs:
                 print(self.Generate_Text("my name is", 5))
 
                 if iter != 0 and checkpoints != 0 and iter % checkpoints == 0:
-                    path_name = dirName + f"/checkpoint:{iter}.pkl"
+                    path_name = dirName + f"/checkpoint:{iter}.h5"
                     torch.save(
                         model.state_dict(),
                         path_name,
