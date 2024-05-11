@@ -48,7 +48,7 @@ trainParams = TrainParameters(
     learning_rate=2e-4,
     device=device,
     max_iters=5000,
-    checkpoint=100,
+    checkpoint=10,
     decoder=decode,
     encoder=encode,
     eval_interval=1,
@@ -63,4 +63,4 @@ modelFuncs.m = modelFuncs.m.to(device)
 print("Model cihazı:", next(model.parameters()).device)
 print("Train params cihazı:", trainParams.device)
 print("Hyper params cihazı:", hyperParams.device)
-# modelFuncs.train()
+print(modelFuncs.Generate_Text(context="my name is", max_new_tokens=5))

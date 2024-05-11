@@ -6,6 +6,8 @@ import torch
 import torch.nn as nn
 from torch.nn import functional as F
 
+import os
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 
@@ -333,7 +335,6 @@ class ModelFuncs:
 
     def train(self):
         model = self.model
-        hyperparams = self.hyperparams
         checkpoints = self.train_param.checkpoint
         visualate = self.train_param.visualate
         dirName = f"checkpoints/{time.time()}"
@@ -348,8 +349,8 @@ class ModelFuncs:
         )
         eval_interval = self.train_param.eval_interval
         max_iters = self.train_param.max_iters
-
-        # Save hyperparameters to CSV
+        if not os.path.exists(dirName):
+            os.makedirs(dirName)
 
         print(sum(p.numel() for p in self.m.parameters()) / 1e6, "M parameters")
         for iter in range(self.train_param.max_iters):
