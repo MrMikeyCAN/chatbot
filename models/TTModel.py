@@ -4,6 +4,7 @@ import math
 from torch import nn
 import torch.nn.functional as F
 
+
 def get_device():
     return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
@@ -42,13 +43,13 @@ class SentenceEmbedding(nn.Module):
     "For a given sentence, create an embedding"
 
     def __init__(
-        self,
-        max_sequence_length,
-        d_model,
-        language_to_index,
-        START_TOKEN,
-        END_TOKEN,
-        PADDING_TOKEN,
+            self,
+            max_sequence_length,
+            d_model,
+            language_to_index,
+            START_TOKEN,
+            END_TOKEN,
+            PADDING_TOKEN,
     ):
         super().__init__()
         self.vocab_size = len(language_to_index)
@@ -186,17 +187,17 @@ class SequentialEncoder(nn.Sequential):
 
 class Encoder(nn.Module):
     def __init__(
-        self,
-        d_model,
-        ffn_hidden,
-        num_heads,
-        drop_prob,
-        num_layers,
-        max_sequence_length,
-        language_to_index,
-        START_TOKEN,
-        END_TOKEN,
-        PADDING_TOKEN,
+            self,
+            d_model,
+            ffn_hidden,
+            num_heads,
+            drop_prob,
+            num_layers,
+            max_sequence_length,
+            language_to_index,
+            START_TOKEN,
+            END_TOKEN,
+            PADDING_TOKEN,
     ):
         super().__init__()
         self.sentence_embedding = SentenceEmbedding(
@@ -298,17 +299,17 @@ class SequentialDecoder(nn.Sequential):
 
 class Decoder(nn.Module):
     def __init__(
-        self,
-        d_model,
-        ffn_hidden,
-        num_heads,
-        drop_prob,
-        num_layers,
-        max_sequence_length,
-        language_to_index,
-        START_TOKEN,
-        END_TOKEN,
-        PADDING_TOKEN,
+            self,
+            d_model,
+            ffn_hidden,
+            num_heads,
+            drop_prob,
+            num_layers,
+            max_sequence_length,
+            language_to_index,
+            START_TOKEN,
+            END_TOKEN,
+            PADDING_TOKEN,
     ):
         super().__init__()
         self.sentence_embedding = SentenceEmbedding(
@@ -327,7 +328,7 @@ class Decoder(nn.Module):
         )
 
     def forward(
-        self, x, y, self_attention_mask, cross_attention_mask, start_token, end_token
+            self, x, y, self_attention_mask, cross_attention_mask, start_token, end_token
     ):
         y = self.sentence_embedding(y, start_token, end_token)
         y = self.layers(x, y, self_attention_mask, cross_attention_mask)
@@ -336,19 +337,19 @@ class Decoder(nn.Module):
 
 class Transformer(nn.Module):
     def __init__(
-        self,
-        d_model,
-        ffn_hidden,
-        num_heads,
-        drop_prob,
-        num_layers,
-        max_sequence_length,
-        target_lang_vocab,
-        english_to_index,
-        target_lang_to_index,
-        START_TOKEN,
-        END_TOKEN,
-        PADDING_TOKEN,
+            self,
+            d_model,
+            ffn_hidden,
+            num_heads,
+            drop_prob,
+            num_layers,
+            max_sequence_length,
+            target_lang_vocab,
+            english_to_index,
+            target_lang_to_index,
+            START_TOKEN,
+            END_TOKEN,
+            PADDING_TOKEN,
     ):
         super().__init__()
         self.encoder = Encoder(
@@ -381,16 +382,16 @@ class Transformer(nn.Module):
         )
 
     def forward(
-        self,
-        x,
-        y,
-        encoder_self_attention_mask=None,
-        decoder_self_attention_mask=None,
-        decoder_cross_attention_mask=None,
-        enc_start_token=False,
-        enc_end_token=False,
-        dec_start_token=False,  # We should make this true
-        dec_end_token=False,
+            self,
+            x,
+            y,
+            encoder_self_attention_mask=None,
+            decoder_self_attention_mask=None,
+            decoder_cross_attention_mask=None,
+            enc_start_token=False,
+            enc_end_token=False,
+            dec_start_token=False,  # We should make this true
+            dec_end_token=False,
     ):  # x, y are batch of sentences
         x = self.encoder(
             x,

@@ -9,7 +9,7 @@ model = GPTLanguageModel(hyperParams)
 model.load_state_dict(torch.load("checkpoints/1715423841.6194382/checkpoint:10.h5"))
 
 
-def Generate_Text(
+def generate_text(
         context: str,
         max_new_tokens: int = 500,
 ):
@@ -24,6 +24,6 @@ def Generate_Text(
 
 
 start_time = time.time()
-print(Generate_Text(context="my name is", max_new_tokens=10))
+print(generate_text(context="my name is", max_new_tokens=10))
 end_time = time.time()
 print(f"Geçen süre: {end_time - start_time}")
