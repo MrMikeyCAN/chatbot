@@ -31,3 +31,8 @@ __pycache__/
 .fake
 ModelData.txt
 /chechpoints/
+/checkpoints/
+*.dockerignore
+compose.yaml
+Dockerfile
+README.Docker.md
