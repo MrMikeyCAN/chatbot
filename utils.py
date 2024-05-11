@@ -1,15 +1,8 @@
-from gtts import gTTS
-from pygame import mixer
-from datasets import load_dataset, Audio
-from transformers import AutoFeatureExtractor
+import csv
 
-mixer.init()
-mixer.music.set_volume(1)
 
-def text_to_speech(bot_name: str, text: str, lang="tr"):
-    tts = gTTS(text=text, lang=lang)
-    filename = "sound.wav"
-    tts.save(filename)
-    print(f"{bot_name}: {text}")
-
-text_to_speech("Jarvis","Merhaba okula geldim")
+def save_to_csv(headers: list, data: list, file_path: str):
+    with open(file_path, 'w') as f:
+        writer = csv.DictWriter(f, fieldnames=headers)
+        writer.writeheader()
+        writer.writerows(data)

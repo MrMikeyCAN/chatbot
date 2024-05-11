@@ -4,9 +4,12 @@ from models.GPTModel import (
     GPTLanguageModel,
     ModelFuncs,
 )
+
+from utils import save_to_csv
+
 import torch
 
-device =torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(device)
 
 with open("input2.txt", "r", encoding="utf-8") as f:
@@ -32,12 +35,12 @@ def decode(indices):
 # Define the hyperparameters
 hyperParams = Hyperparameters(
     vocab_size=vocab_size,
-    n_embd=256,
+    n_embd=16,
     n_head=6,
     n_layer=20,
     dropout=0.3,
-    batch_size=128,
-    block_size=128,
+    batch_size=16,
+    block_size=16,
     decoder=decode,
     encoder=encode,
     device=device,

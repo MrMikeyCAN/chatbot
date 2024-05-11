@@ -5,22 +5,25 @@ import matplotlib.pyplot as plt
 import math
 import os
 import time
+from utils import save_to_csv
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+
+
 # ! Hyper parametreler model için gerekli tüm parametreleri içerir ve de bir çok gerekli kodu
 class Hyperparameters:
     def __init__(
-        self,
-        batch_size,
-        block_size,
-        n_embd,
-        n_head,
-        n_layer,
-        dropout,
-        vocab_size,
-        encoder,
-        decoder,
-        device,
+            self,
+            batch_size,
+            block_size,
+            n_embd,
+            n_head,
+            n_layer,
+            dropout,
+            vocab_size,
+            encoder,
+            decoder,
+            device,
     ):
         # * Batch size
         self.batch_size = batch_size
@@ -37,8 +40,8 @@ class Hyperparameters:
         self.decoder = decoder
         self.device = device
 
-
     # hyperparameters
+
 
 # ------------
 
@@ -48,24 +51,24 @@ torch.manual_seed(42)
 # ! Eğitim için gerekli tüm kodları içerir
 class TrainParameters:
     def __init__(
-        self,
-        text,
-        max_iters,
-        eval_interval,
-        learning_rate,
-        device,
-        eval_iters,
-        checkpoint: int,
-        visualate: bool,
-        encoder,
-        decoder,
+            self,
+            text,
+            max_iters,
+            eval_interval,
+            learning_rate,
+            device,
+            eval_iters,
+            checkpoint: int,
+            visualate: bool,
+            encoder,
+            decoder,
     ):
         self.encoder = encoder
         self.decoder = decoder
         self.data = torch.tensor(self.encoder(text), dtype=torch.long)
         self.n = int(0.9 * len(self.data))
         self.train_data = self.data[: self.n]
-        self.val_data = self.data[self.n :]
+        self.val_data = self.data[self.n:]
         self.max_iters = max_iters
         self.eval_interval = eval_interval
         self.learning_rate = learning_rate
@@ -107,7 +110,7 @@ class Head(nn.Module):
         q = self.query(x)  # (B,T,hs)
         # compute attention scores ("affinities")
         wei = (
-            q @ k.transpose(-2, -1) * k.shape[-1] ** -0.5
+                q @ k.transpose(-2, -1) * k.shape[-1] ** -0.5
         )  # (B, T, hs) @ (B, hs, T) -> (B, T, T)
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float("-inf"))  # (B, T, T)
         wei = F.softmax(wei, dim=-1)  # (B, T, T)
@@ -266,7 +269,7 @@ class GPTLanguageModel(nn.Module):
     def generate(self, idx, max_new_tokens):
         for _ in range(max_new_tokens):
             # crop idx to the last block_size tokens
-            idx_cond = idx[:, -self.block_size :]
+            idx_cond = idx[:, -self.block_size:]
 
             # get the predictions
             logits, loss = self(idx_cond)
@@ -287,10 +290,10 @@ class GPTLanguageModel(nn.Module):
 # ! Model ile ilgili tüm parametreler
 class ModelFuncs:
     def __init__(
-        self,
-        model: GPTLanguageModel,
-        hyperparams: Hyperparameters,
-        train_params: TrainParameters,
+            self,
+            model: GPTLanguageModel,
+            hyperparams: Hyperparameters,
+            train_params: TrainParameters,
     ):
         self.hyperparams = hyperparams
         self.train_param = train_params
@@ -298,14 +301,14 @@ class ModelFuncs:
         self.m = model.to(device)
 
     def Generate_Text(
-        self,
-        context: str,
-        max_new_tokens: int = 500,
+            self,
+            context: str,
+            max_new_tokens: int = 500,
     ):
         generated_text = ""
         context = torch.tensor(self.hyperparams.encoder(context), device=device)[
-            None, :
-        ]
+                  None, :
+                  ]
         generated_text += self.hyperparams.decoder(
             self.m.generate(context, max_new_tokens)[0].tolist()
         )
@@ -346,8 +349,34 @@ class ModelFuncs:
         )
         eval_interval = self.train_param.eval_interval
         max_iters = self.train_param.max_iters
+
+        if not os.path.exists(dirName):
+            os.makedirs(dirName)
+
+        hyperparams_text = {
+            'vocab_size': hyperparams.vocab_size,
+            'n_embd': hyperparams.n_embd,
+            'n_head': hyperparams.n_head,
+            'n_layer': hyperparams.n_layer,
+            'dropout': hyperparams.dropout,
+            'batch_size': hyperparams.dropout,
+            'block_size': hyperparams.block_size,
+            'decoder': hyperparams.decoder,
+            'encoder': hyperparams.encoder,
+            'device': hyperparams.device,
+        }
+
+        # Convert hyperparameters to a list of dictionaries
+        data = [hyperparams_text]
+
+        # Define headers
+        headers = list(hyperparams_text.keys())
+        # Save hyperparameters to CSV
+        save_to_csv(headers, data, file_path=f"/checkpoints/{dirName}/HyperParams.csv")
+
         print(sum(p.numel() for p in self.m.parameters()) / 1e6, "M parameters")
         for iter in range(self.train_param.max_iters):
+            start_time = time.time()
 
             # every once in a while evaluate the loss on train and val sets
             if iter % eval_interval == 0 or iter == max_iters - 1:
@@ -363,8 +392,6 @@ class ModelFuncs:
                 print(self.Generate_Text("my name is", 5))
 
                 if iter != 0 and checkpoints != 0 and iter % checkpoints == 0:
-                    if not os.path.exists(dirName):
-                        os.makedirs(dirName)
                     path_name = dirName + f"/checkpoint:{iter}.pkl"
                     torch.save(
                         model.state_dict(),
@@ -383,6 +410,8 @@ class ModelFuncs:
             loss.backward()
             optimizer.step()
             scheduler.step()
+            end_time = time.time()
+            print(f"Geçirilen zaman: {end_time - start_time}")
 
         # Plot losses
         if visualate:
