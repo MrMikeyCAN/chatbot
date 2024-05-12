@@ -33,12 +33,12 @@ def decode(indices):
 # Define the hyperparameters
 hyperParams = Hyperparameters(
     vocab_size=vocab_size,
-    n_embd=16,
+    n_embd=256,
     n_head=6,
     n_layer=20,
     dropout=0.3,
-    batch_size=16,
-    block_size=16,
+    batch_size=128,
+    block_size=128,
     decoder=decode,
     encoder=encode,
     device=device,
@@ -60,7 +60,7 @@ trainParams = TrainParameters(
 model = GPTLanguageModel(hyperParams).to(device)
 modelFuncs = ModelFuncs(hyperparams=hyperParams, train_params=trainParams, model=model)
 modelFuncs.m = modelFuncs.m.to(device)
-print("Model cihazı:", next(model.parameters()).device)
-print("Train params cihazı:", trainParams.device)
-print("Hyper params cihazı:", hyperParams.device)
-print(modelFuncs.Generate_Text(context="my name is", max_new_tokens=5))
+print("Device of model:", next(model.parameters()).device)
+print("Train parameters device:", trainParams.device)
+print("Hyper parameters device:", hyperParams.device)
+modelFuncs.train()

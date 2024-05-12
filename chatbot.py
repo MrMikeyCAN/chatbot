@@ -26,4 +26,4 @@ def generate_text(
 start_time = time.time()
 print(generate_text(context="my name is", max_new_tokens=10))
 end_time = time.time()
-print(f"Geçen süre: {end_time - start_time}")
+print(f"Time elapsedÏ: {end_time - start_time}")
