@@ -19,13 +19,13 @@
 
     "root_dir": "D:\\ROBOT-V0\\chatbot\\Speech2Text\\Datasets\\VAD_Filter_Datasets",
 
-    "train_filename": "train",
-    "val_filename": "val",
-    "test_filename": "test"
+    "train_filename": "train_vad",
+    "val_filename": "val_vad",
+    "test_filename": "test_vad"
   },
 
   "Language_Detection":{
-    "name": "Language_detect",
+    "name": "Language_detection",
     "version": "1.0.0",
     "public": false,
 
@@ -33,7 +33,7 @@
     "has_val": true,
     "write_on_it": true,
 
-    "split_value_1": 0.8,
+    "split_value_1": 0.2,
     "split_value_2": 0.5,
     "random_seed": 42,
 
@@ -45,8 +45,30 @@
 
     "root_dir": "D:\\ROBOT-V0\\chatbot\\Speech2Text\\Datasets\\STT_LD_Datasets",
 
-    "train_filename": "train",
-    "val_filename": "val",
-    "test_filename": "test"
+    "train_filename": "train_ld",
+    "val_filename": "val_ld",
+    "test_filename": "test_ld"
+  },
+  "STT": {
+    "name": "Stt",
+    "version": "1.0.0",
+    "public": false,
+
+    "dataset": "covost2",
+
+    "train_only": false,
+    "has_val": true,
+    "write_on_it": true,
+
+    "features_name": "path",
+    "labels_name": "translate",
+
+    "labels":   {"tr":  ["tr_en","translation"], "zh-CN": ["zh-CN_en","translation"]},
+
+    "root_dir": "D:\\ROBOT-V0\\chatbot\\Speech2Text\\Datasets\\STT_LD_Datasets",
+
+    "train_filename": "train_stt",
+    "val_filename": "val_stt",
+    "test_filename": "test_stt"
   }
 }
