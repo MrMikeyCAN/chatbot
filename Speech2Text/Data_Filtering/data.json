@@ -16,15 +16,14 @@
 
     "labels":   {"clean_test": 1, "clean_train": 1, "combined": 1, "noise_test": 0, "noise_train": 0},
     "type_index": 0,
+    "start_count": 0,
 
     "root_dir": "D:\\ROBOT-V0\\chatbot\\Speech2Text\\Datasets\\VAD_Filter_Datasets",
 
-    "train_filename": "train_vad",
-    "val_filename": "val_vad",
-    "test_filename": "test_vad"
+    "filenames": ["train_vad.csv","val_vad.csv","test_vad.csv"]
   },
 
-  "Language_Detection":{
+  "LD":{
     "name": "Language_detection",
     "version": "1.0.0",
     "public": false,
@@ -42,12 +41,11 @@
 
     "labels":   {"tr\\clips": 0, "zh-CN\\clips": 1},
     "type_index": 1,
+    "start_count": 0,
 
     "root_dir": "D:\\ROBOT-V0\\chatbot\\Speech2Text\\Datasets\\STT_LD_Datasets",
 
-    "train_filename": "train_ld",
-    "val_filename": "val_ld",
-    "test_filename": "test_ld"
+    "filenames": ["train_ld.csv","val_ld.csv","test_ld.csv"]
   },
   "STT": {
     "name": "Stt",
@@ -64,11 +62,10 @@
     "labels_name": "translate",
 
     "labels":   {"tr":  ["tr_en","translation"], "zh-CN": ["zh-CN_en","translation"]},
+    "start_count": 0,
 
     "root_dir": "D:\\ROBOT-V0\\chatbot\\Speech2Text\\Datasets\\STT_LD_Datasets",
 
-    "train_filename": "train_stt",
-    "val_filename": "val_stt",
-    "test_filename": "test_stt"
+    "filenames": ["train_stt.csv","val_stt.csv","test_stt.csv"]
   }
 }

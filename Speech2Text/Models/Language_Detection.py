@@ -1,5 +1,10 @@
 import torch
 import torch.nn as nn
+import warnings
+
+warnings.warn("Please Do Not Change Parameters Name In Json File")
+# Close Warnings
+warnings.filterwarnings("ignore")
 
 # Device to Use
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -8,9 +13,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 softmax = nn.Softmax(dim=1)
 
 
-class Language(nn.Module):
+class LD(nn.Module):
     def __init__(self, input_size, hidden_size, num_classes, num_layers=1, dropout=0.2):
-        super(Language, self).__init__()
+        super(LD, self).__init__()
 
         # Parameters
         self.hidden_size = hidden_size

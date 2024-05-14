@@ -1,12 +1,16 @@
 import torch
 import torch.nn as nn
+import warnings
+
+warnings.warn("Please Do Not Change Parameters Name In Json File")
+# Close Warnings
+warnings.filterwarnings("ignore")
 
 # Device to Use
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Non-model Parameters
 sigmoid = nn.Sigmoid()
-threshold = 0.7
 
 
 class VAD(nn.Module):

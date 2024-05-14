@@ -1,4 +1,3 @@
-import time
 import warnings
 import datasets
 from sklearn.model_selection import train_test_split
@@ -6,33 +5,40 @@ import json
 import csv
 import os
 
-warnings.warn("Speech to Text name must be stt")
-warnings.warn("VAD name must be vad")
-
-time.sleep(0.1)
+warnings.warn("Please Do Not Change Parameters Name In Json File")
+# Close Warnings
+warnings.filterwarnings("ignore")
 
 # Set types
 dataset = list()
-filetype = ".csv"
 datatypes = [".wav", ".mp3", ".flac"]
 
 # Reading json file
 try:
-    with open('data.json', 'r', encoding='utf-8') as f:
+    with open('package.json', 'r', encoding='utf-8') as f:
+        json_path = json.load(f)["data_filtering_json_path"]
+
+    with open(json_path, 'r', encoding='utf-8') as f:
         json_file = json.load(f)
+
 except FileNotFoundError:
     raise FileNotFoundError("Json File Not Found.")
 
 
 # Write function
-def write(dir_path: str, filename: str, w_data: list, count: int = 0):
+def write(dir_path: str, filename: str, w_data: list, name_index: int, count: int):
+    global json_file, json_path
+
     path = os.path.join(dir_path, filename)
     if not write_on_it:
-        start = path
-        while os.path.exists(start):
-            start = path[: -len(datatypes[datatype_index])] + str(count) + filetype
+        while os.path.exists(path):
+            filename = filename[:filename.rfind('.')]+str(count)+filename[filename.rfind('.'):]
+            path = os.path.join(dir_path, filename)
             count += 1
-        path = start
+
+        with open(json_path, 'w', encoding='utf-8') as file:
+            json_file["filenames"][name_index] = filename
+            json.dump(json_file, file, indent=4)
 
     with open(path, "w", encoding="utf8", newline='') as _file:
         writer = csv.DictWriter(f=_file, fieldnames=fields)
@@ -73,9 +79,7 @@ def process_folders(root: str, data_labels: dict, index: int) -> list:
 for model in json_file:
     dataset.clear()
 
-    model_name = json_file[model]["name"].lower()
-
-    if model_name.lower() == 'stt':
+    if model == 'STT':
         try:
             # Get Parameters
             train_only = json_file[model]["train_only"]
@@ -86,9 +90,8 @@ for model in json_file:
             labels = json_file[model]["labels"]
             features_name = json_file[model]["features_name"]
             labels_name = json_file[model]["labels_name"]
-            train_filename = json_file[model]["train_filename"]
-            val_filename = json_file[model]["val_filename"]
-            test_filename = json_file[model]["test_filename"]
+            filenames = json_file[model]["filenames"]
+            start_count = json_file[model]["start_count"]
         except KeyError:
             raise KeyError("Please Control Json File.")
 
@@ -101,20 +104,18 @@ for model in json_file:
         assert isinstance(labels, dict), "labels must be dict"
         assert isinstance(features_name, str), "features_name must be str"
         assert isinstance(labels_name, str), "labels_name must be str"
-        assert isinstance(train_filename, str), "train_filename must be str"
-        assert isinstance(val_filename, str), "val_filename must be str"
-        assert isinstance(test_filename, str), "test_filename must be str"
+        assert isinstance(filenames, list), "filenames must be list"
+        assert isinstance(filenames[0], str), "filename_train must be str"
+        assert isinstance(filenames[1], str), "filename_val must be str"
+        assert isinstance(filenames[2], str), "filename_test must be str"
+        assert isinstance(start_count, int), "start_count must be int"
 
         assert os.path.exists(root_dir), "root_dir must be an existing directory"
 
         for key in labels.keys():
             assert os.path.exists(os.path.join(root_dir, key)), f"{key} already not exists"
 
-        train_filename += filetype
-        val_filename += filetype
-        test_filename += filetype
-
-        filenames = [train_filename, val_filename, test_filename]
+        start_count = max(start_count, 0)
 
         # Create Data
         for label_data in labels:
@@ -138,7 +139,7 @@ for model in json_file:
                     dataset.append(pre_dataset(val_features, val_labels))
 
             for data, name in zip(dataset, filenames):
-                write(os.path.join(root_dir, label_data), name, data)
+                write(os.path.join(root_dir, label_data), name, data, name_index=filenames.index(name), count=start_count)
     else:
         try:
             # Get Parameters
@@ -153,9 +154,8 @@ for model in json_file:
             labels = json_file[model]['labels']
             type_index = json_file[model]['type_index']
             root_dir = json_file[model]['root_dir']
-            train_filename = json_file[model]['train_filename']
-            val_filename = json_file[model]['val_filename']
-            test_filename = json_file[model]['test_filename']
+            filenames = json_file[model]["filenames"]
+            start_count = json_file[model]["start_count"]
         except KeyError:
             raise KeyError("Please Control Json File.")
 
@@ -171,9 +171,11 @@ for model in json_file:
         assert isinstance(labels, dict), "labels must be dict"
         assert isinstance(type_index, int), "type_index must be int"
         assert isinstance(root_dir, str), "root_dir must be str"
-        assert isinstance(train_filename, str), "train_filename must be str"
-        assert isinstance(val_filename, str), "val_filename must be str"
-        assert isinstance(test_filename, str), "test_filename must be str"
+        assert isinstance(filenames, list), "filenames must be list"
+        assert isinstance(filenames[0], str), "filename_train must be str"
+        assert isinstance(filenames[1], str), "filename_val must be str"
+        assert isinstance(filenames[2], str), "filename_test must be str"
+        assert isinstance(start_count, int), "start_count must be int"
 
         assert 0 <= split_value_1 <= 1, "split_value_1 should be between 0 and 1"
         assert 0 <= split_value_2 <= 1, "split_value_2 should be between 0 and 1"
@@ -192,11 +194,8 @@ for model in json_file:
             datatype_index = type_index
 
         fields = [features_name, labels_name]
-        train_filename += filetype
-        val_filename += filetype
-        test_filename += filetype
-
         dataset = process_folders(root_dir, labels, datatype_index)
+        start_count = max(start_count, 0)
 
         if not train_only:
             # Split
@@ -204,11 +203,11 @@ for model in json_file:
                 train_data, test_data = train_test_split(dataset, test_size=split_value_1, random_state=random_seed)
                 if has_val:
                     test_data, val_data = train_test_split(test_data, test_size=split_value_2, random_state=random_seed)
-                    write(root_dir, val_filename, val_data)
+                    write(root_dir, filenames[1], val_data, name_index=1, count=start_count)
 
-                write(root_dir, train_filename, train_data)
-                write(root_dir, test_filename, test_data)
+                write(root_dir, filenames[0], train_data, name_index=0, count=start_count)
+                write(root_dir, filenames[2], test_data, name_index=2, count=start_count)
             else:
                 raise ValueError("No Data.")
         else:
-            write(root_dir, train_filename, dataset)
+            write(root_dir, filenames[0], dataset, name_index=0, count=start_count)

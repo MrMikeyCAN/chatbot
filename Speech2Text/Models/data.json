@@ -1,0 +1,35 @@
+{
+  "LD": {
+    "name": "Language_detection",
+    "version": "1.0.0",
+    "public": false,
+
+    "hidden_size": 256,
+    "num_classes": 2,
+    "num_layers": 1,
+    "dropout": 0.2
+  },
+  "STT": {
+    "name": "Stt",
+    "version": "1.0.0",
+    "public": false,
+
+    "hidden_size": 256,
+    "num_layers": 1,
+    "dropout": 0.2,
+    "max_length": 100,
+    "sos_token": 0,
+    "eos_token": 1
+  },
+  "VAD": {
+    "name": "Vas",
+    "version": "1.0.0",
+    "public": false,
+
+    "hidden_size": 256,
+    "num_classes": 1,
+    "num_layers": 1,
+    "dropout": 0.2,
+    "threshold": 0.7
+  }
+}
