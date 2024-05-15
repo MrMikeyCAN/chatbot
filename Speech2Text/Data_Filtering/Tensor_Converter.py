@@ -39,7 +39,7 @@ class TensorConverter:
             self.labels = json_file['labels']
 
         except FileNotFoundError:
-            raise FileNotFoundError("The Json File Was Not Found.")
+            raise FileNotFoundError("Json File Not Found.")
         except KeyError:
             raise KeyError("Please Control Json File.")
 
@@ -65,7 +65,7 @@ class TensorConverter:
         if alphabet is not None:
             self.alphabet = alphabet
         else:
-            # Not Important
+            # Not Important Warning
             self.alphabet = "abcdefghijklmnopqrstuvwxyzçşıüöğ "
 
         self.SOS_token = 0
@@ -137,7 +137,7 @@ class TensorConverter:
 
     def __vad_ld(self, data: pd.Series):
         # VAD and LD Processing
-        # .load warning is not important
+        # .load Warning Is Not Important
         audio, sample_rate = torchaudio.load(data[0], normalize=True)
         audio = audio.to(self.device)
         audio = torchaudio.transforms.MFCC(sample_rate)(audio)
@@ -169,7 +169,7 @@ class TensorConverter:
 
     def __stt(self, data: pd.Series):
         # STT Processing
-        # .load warning is not important
+        # .load Warning Is Not Important
         audio, sample_rate = torchaudio.load(data[0], normalize=True)
         audio = audio.to(self.device)
         audio = torchaudio.transforms.MelSpectrogram(sample_rate)(audio)

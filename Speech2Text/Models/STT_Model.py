@@ -133,6 +133,7 @@ class STT(nn.Module):
             else:
                 _, topi = decoder_output.topk(1)
                 decoder_input = topi.squeeze(1).detach()
+
                 if decoder_input == self.eos:
                     break
 
