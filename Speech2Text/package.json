@@ -9,15 +9,20 @@
   "data_filtering_py_path": "D:\\ROBOT-V0\\chatbot\\Speech2Text\\Data_Filtering\\Split_Datasets.py",
   "models_json_path": "D:\\ROBOT-V0\\chatbot\\Speech2Text\\Models\\data.json",
 
-  "VAD": [0.001,64,10,0.001,1e-5,10],
-  "LD": [0.003,8,100,0.001,1e-5,10],
-  "STT": [0.001,64,10,1e-5,1e-5,10],
+  "save_path": "D:\\ROBOT-V0\\chatbot\\Speech2Text\\Checkpoints",
+  "save_name": "model_parameters.pth",
+  "save_count": 0,
+  "save_on_it": true,
+
+  "VAD": [0.001,64,10,0.001,1e-5,1],
+  "LD": [0.003,8,100,0.001,1e-5,1],
+  "STT": [0.001,4,10,1e-5,1e-5,1],
 
   "train_vad": false,
-  "train_ld": true,
-  "train_stt": false,
+  "train_ld": false,
+  "train_stt": true,
 
   "draw_vad": false,
-  "draw_ld": true,
-  "draw_stt": false
+  "draw_ld": false,
+  "draw_stt": true
 }

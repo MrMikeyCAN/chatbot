@@ -1,11 +1,11 @@
+import os
+import shutil
 from matplotlib import pyplot as plt
-
 from Models import VAD_Model, STT_Model, Language_Detection
 from Data_Filtering import Tensor_Converter
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torchaudio
 import warnings
 import subprocess
 import json
@@ -23,6 +23,7 @@ NF
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+
 try:
     with open("package.json", 'r', encoding='utf-8') as file:
         json_file = json.load(file)
@@ -37,6 +38,10 @@ try:
     draw_vad = json_file["draw_vad"]
     draw_ld = json_file["draw_ld"]
     draw_stt = json_file["draw_stt"]
+    save_path = json_file["save_path"]
+    save_on_it = json_file["save_on_it"]
+    save_name = json_file["save_name"]
+    count = json_file["save_count"]
 
     assert isinstance(data_filtering_json_path, str), "data_filtering_json_path should be a string"
     assert isinstance(data_filtering_py_path, str), "data_filtering_py_path should be a string"
@@ -48,11 +53,21 @@ try:
     assert isinstance(draw_vad, bool), "draw_vad should be a boolean"
     assert isinstance(draw_ld, bool), "draw_ld should be a boolean"
     assert isinstance(draw_stt, bool), "draw_stt should be a boolean"
+    assert isinstance(save_path, str), "save_path should be a string"
+    assert isinstance(save_on_it, bool), "save_on_it should be a boolean"
+    assert isinstance(save_name, str), "save_name should be a string"
+    assert isinstance(count, int), "count should be an integer"
+
+    save_path_files = os.listdir(save_path)
+    for save_path_file in save_path_files:
+        os.remove(os.path.join(save_path, save_path_file))
 
     with open(models_json_path, 'r', encoding='utf-8') as file:
         model_json_file = json.load(file)
 
     json_model_names = ["VAD", "LD", "STT"]
+
+    count = max(0, count)
 
     vad = json_file[json_model_names[0]]
     ld = json_file[json_model_names[1]]
@@ -81,7 +96,10 @@ if data_filter:
     subprocess.run(["python", data_filtering_py_path])
 
 
-def train_function(num_epochs, train_dataloader, val_dataloader, model, criterion, optimizer, frequency,  process, threshold=0):
+def train_function(num_epochs, train_dataloader, val_dataloader, model, criterion, optimizer, frequency,
+                   process, threshold=0, alphabet=None):
+
+    global save_path, save_on_it, save_name, count
     loss_history = list()
     accuracy_history = list()
     iteration_history = list()
@@ -93,9 +111,12 @@ def train_function(num_epochs, train_dataloader, val_dataloader, model, criterio
             new_audio_train = audio_train.permute(0, 2, 1).to(device)
             new_label_train = label_train.to(device)
 
-            pred = model(new_audio_train)
-            if process == "VAD":
-                pred = VAD_Model.sigmoid(pred)
+            if process is not "STT":
+                pred = model(new_audio_train)
+                if process == "VAD":
+                    pred = VAD_Model.sigmoid(pred)
+            else:
+                pred = model(new_audio_train, new_label_train)
 
             loss = criterion(pred, new_label_train)
             loss.backward()
@@ -111,23 +132,55 @@ def train_function(num_epochs, train_dataloader, val_dataloader, model, criterio
                     new_audio_val = audio_val.permute(0, 2, 1).to(device)
                     new_label_val = label_val.to(device)
 
-                    pred = model(new_audio_val)
                     if process == "VAD":
+                        pred = model(new_audio_val)
                         pred = VAD_Model.sigmoid(pred)
                         pred = torch.where(pred >= threshold, torch.tensor(1), torch.tensor(0))
                     elif process == "LD":
+                        pred = model(new_audio_val)
                         pred = pred.argmax(dim=1)
                         new_label_val = label_val.argmax(dim=1)
+                    elif process == "STT":
+                        pred = model(new_audio_val, new_label_val)
+                        pred = pred.argmax(dim=1)
+                        print(new_label_val.shape)
 
-                    total += len(new_label_val)
-                    correct_number += sum([p == l for p, l in zip(pred, new_label_val)])
+                    else:
+                        raise ValueError("Process Type Error")
+
+                    if process is not "STT":
+                        total += len(new_label_val)
+                        correct_number += sum([p == l for p, l in zip(pred, new_label_val)])
+                    else:
+                        total += len(new_label_val) * new_label_val.size(1)
+                        for p, l in zip(pred, new_label_val):
+                            correct_number += sum([p_b == l_b for p_b, l_b in zip(p, l)])
 
                 accuracy = 100 * correct_number / float(total)
 
                 loss_history.append(loss.item())
                 accuracy_history.append(accuracy)
                 iteration_history.append(count)
+
                 print(f"Epochs [{epoch}/{num_epochs}] Iteration {count} Loss {loss.item():.4f} Accuracy {accuracy:.4f}")
+
+                if process is "STT":
+                    for i in pred:
+                        prediction = ""
+                        for j in i:
+                            prediction += alphabet[j - 2]
+                        print(prediction)
+
+                saving = os.path.join(save_path, save_name)
+                if save_on_it:
+                    torch.save(model.state_dict(), str(saving))
+                else:
+                    while os.path.exists(saving):
+                        save_name = save_name[:save_name.rfind('.')] + str(count) + save_name[save_name.rfind('.'):]
+                        saving = os.path.join(save_path, save_name)
+                        count += 1
+                    torch.save(model.state_dict(), str(saving))
+
     return iteration_history, loss_history, accuracy_history
 
 
@@ -143,7 +196,12 @@ def pre_data(data_parameters, process):
     input_size = converter.input_size
     hidden_size = parameters["hidden_size"]
     num_layers = parameters["num_layers"]
-    num_classes = parameters["num_classes"]
+
+    if process is not "STT":
+        num_classes = parameters["num_classes"]
+        assert isinstance(num_classes, int), "num_classes should be an int."
+        num_classes = max(1, num_classes)
+
     dropout = parameters["dropout"]
 
     threshold = 0
@@ -153,21 +211,28 @@ def pre_data(data_parameters, process):
         assert isinstance(threshold, float), "vad_threshold should be a float."
         assert 0 <= threshold <= 1, "vad_threshold should be between 0 and 1."
         assert 0 <= dropout <= 1, "dropout should be between 0 and 1."
+    elif process == "STT":
+        max_length = parameters["max_length"]
+        assert isinstance(max_length, int), "max_length should be an int."
+        max_length = max(1, max_length)
 
     assert isinstance(hidden_size, int), "hidden_size should be an int."
     assert isinstance(num_layers, int), "num_layers should be an int."
-    assert isinstance(num_classes, int), "num_classes should be an int."
     assert isinstance(dropout, float), "dropout should be a float."
 
     hidden_size = max(1, hidden_size)
     num_layers = max(1, num_layers)
-    num_classes = max(1, num_classes)
+
     if process == "VAD":
         model = VAD_Model.VAD(input_size, hidden_size, num_classes, num_layers, dropout).to(device)
         criterion = nn.BCELoss()
     elif process == "LD":
         model = Language_Detection.LD(input_size, hidden_size, num_classes, num_layers, dropout).to(device)
         criterion = nn.CrossEntropyLoss()
+    elif process == "STT":
+        model = STT_Model.STT(input_size, hidden_size, len(converter.alphabet)+2, num_layers, dropout,
+                              max_length).to(device)
+        criterion = nn.NLLLoss()
     else:
         raise ValueError("Process should be either VAD or LD.")
 
@@ -182,7 +247,8 @@ def pre_data(data_parameters, process):
     optimizer = optim.Adam(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
     return train_function(num_epochs, train_dataloader, val_dataloader,
-                          model, criterion, optimizer, frequency, process, threshold=threshold)
+                          model, criterion, optimizer, frequency, process, threshold=threshold,
+                          alphabet=converter.alphabet)
 
 
 def draw_loss_accuracy(iteration_list, loss_list, accuracy_list):
@@ -198,6 +264,7 @@ def draw_loss_accuracy(iteration_list, loss_list, accuracy_list):
     plt.title("Accuracy vs Number of iteration")
     plt.show()
 
+
 # VAD
 if train_vad:
     history = pre_data(vad, "VAD")
@@ -210,3 +277,8 @@ if train_ld:
     if draw_ld:
         draw_loss_accuracy(history[0], history[1], history[2])
 
+# STT
+if stt:
+    history = pre_data(stt, "STT")
+    if draw_stt:
+        draw_loss_accuracy(history[0], history[1], history[2])

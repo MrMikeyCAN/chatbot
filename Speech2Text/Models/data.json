@@ -17,9 +17,7 @@
     "hidden_size": 256,
     "num_layers": 1,
     "dropout": 0.2,
-    "max_length": 100,
-    "sos_token": 0,
-    "eos_token": 1
+    "max_length": 100
   },
   "VAD": {
     "name": "Vas",

@@ -53,7 +53,6 @@ class Attention(nn.Module):
 
         weights = f.softmax(scores, dim=1)
         context = torch.sum(torch.mul(weights, keys), dim=1).unsqueeze(1)
-
         return context
 
 
@@ -83,7 +82,7 @@ class Decoder(nn.Module):
 
         # Decoder Processing
         decoder_output, hidden = self.lstm(input_lstm, decoder_hidden)
-        decoder_output = self.out(decoder_output)
+        decoder_output = self.fc(decoder_output)
 
         return decoder_output, hidden
 
@@ -134,13 +133,13 @@ class STT(nn.Module):
             else:
                 _, topi = decoder_output.topk(1)
                 decoder_input = topi.squeeze(1).detach()
-
                 if decoder_input == self.eos:
                     break
 
         # Output Concatenation and log_softmax Application
-        decoder_outputs = torch.cat(decoder_outputs, 1)
+        decoder_outputs = torch.cat(decoder_outputs, 1).to(device)
         decoder_outputs = f.log_softmax(decoder_outputs, dim=1)
+        decoder_outputs = decoder_outputs.permute(0, 2, 1)
         return decoder_outputs
 
 

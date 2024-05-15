@@ -143,9 +143,9 @@ class TensorConverter:
         audio = torchaudio.transforms.MFCC(sample_rate)(audio)
 
         if self.process == "LD":
-            audio = torchaudio.transforms.AmplitudeToDB()(audio)
             label = one_hot(torch.tensor(data[1]), num_classes=2).float()
         elif self.process == "VAD":
+            audio = torchaudio.transforms.AmplitudeToDB()(audio)
             label = torch.tensor(data[1], dtype=torch.float).unsqueeze(0).to(self.device)
         else:
             raise KeyError("Please Select Right Process.")
@@ -163,9 +163,9 @@ class TensorConverter:
 
         for index, c in enumerate(label):
             index = self.alphabet.index(c) + 2
-            tensors[index] = torch.tensor([index])
-        tensors[-1] = torch.tensor([self.EOS_token])
-        return tensors.unsqueeze(0).long()
+            tensors[index] = torch.tensor(index)
+        tensors[-1] = torch.tensor(self.EOS_token)
+        return tensors.long()
 
     def __stt(self, data: pd.Series):
         # STT Processing
