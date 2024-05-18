@@ -15,6 +15,7 @@
   "save_path_ld": "LD_Checkpoint",
   "save_path_stt": ["TR_Checkpoint","ZH-CN_Checkpoint"],
 
+  "save": true,
   "save_name": "model_parameters.pth",
   "save_on_it": true,
   "save_count": 0,

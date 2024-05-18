@@ -9,7 +9,7 @@ warnings.warn("Please Do Not Change Parameters Name In Json File")
 warnings.filterwarnings("ignore")
 
 package_name = "requirements.txt"
-subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", package_name])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", package_name, "-f", "https://download.pytorch.org/whl/torch_stable.html"])
 
 from matplotlib import pyplot as plt
 from Models import VAD_Model, STT_Model, Language_Detection
@@ -17,6 +17,7 @@ from Data_Filtering import Tensor_Converter
 import torch
 import torch.nn as nn
 import torch.optim as optim
+# import torch_tensorrt
 
 # Device to Use
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -37,6 +38,7 @@ try:
     draw_vad = json_file["draw_vad"]
     draw_ld = json_file["draw_ld"]
     draw_stt = json_file["draw_stt"]
+    save = json_file["save"]
     save_path_root = json_file["save_path_root"]
     save_path_vad = json_file["save_path_vad"]
     save_path_ld = json_file["save_path_ld"]
@@ -56,6 +58,7 @@ try:
     assert isinstance(draw_vad, bool), "draw_vad should be a boolean"
     assert isinstance(draw_ld, bool), "draw_ld should be a boolean"
     assert isinstance(draw_stt, bool), "draw_stt should be a boolean"
+    assert isinstance(save, bool), "save should be a boolean"
     assert isinstance(save_path_root, str), "save_path_root should be a string"
     assert isinstance(save_path_vad, str), "save_path_vad should be a string"
     assert isinstance(save_path_ld, str), "save_path_ld should be a string"
@@ -63,6 +66,7 @@ try:
 
     for stt_path in save_path_stt:
         assert isinstance(stt_path, str), "stt_paths should be a string"
+
     assert isinstance(save_on_it, bool), "save_on_it should be a boolean"
     assert isinstance(save_name, str), "save_name should be a string"
     assert isinstance(count, int), "count should be an integer"
@@ -107,7 +111,7 @@ if data_filter:
 # Train
 def train_function(num_epochs, dataloader, model, criterion, optimizer, frequency,
                    save_path, process, threshold=0, alphabet=None):
-    global save_path_root, save_on_it, save_name, count
+    global save_path_root, save_on_it, save_name, count, save
 
     # For Drawing
     loss_history = list()
@@ -163,17 +167,19 @@ def train_function(num_epochs, dataloader, model, criterion, optimizer, frequenc
                     print(prediction)
 
                 # Save Models
-                saving = os.path.join(save_path_root, save_path, save_name)
-                if save_on_it:
-                    torch.save(model.state_dict(), str(saving))
-                else:
-                    while os.path.exists(saving):
-                        save_name = save_name[:save_name.rfind('.')] + str(count) + save_name[save_name.rfind('.'):]
-                        saving = os.path.join(save_path_root, save_path, save_name)
-                        count += 1
-                    torch.save(model.state_dict(), str(saving))
+                if save:
+                    saving = os.path.join(save_path_root, save_path, save_name)
+                    if save_on_it:
+                        torch.save(model.state_dict(), str(saving))
+                    else:
+                        while os.path.exists(saving):
+                            save_name = save_name[:save_name.rfind('.')] + str(count) + save_name[save_name.rfind('.'):]
+                            saving = os.path.join(save_path_root, save_path, save_name)
+                            count += 1
+                        torch.save(model.state_dict(), str(saving))
 
     # Calculate Test Accuracy
+    model = model.eval()
     test_accuracy = test_model(model, process, threshold, dataloader[2])
     print("Test Accuracy: {:.4f}".format(test_accuracy))
 
@@ -214,6 +220,7 @@ def test_model(model, process, threshold, dataloader):
     accuracy = 100 * correct_number / total
 
     return accuracy
+
 
 # Prepare Data
 def pre_data(data_parameters, process, save_path, langauge=None):
