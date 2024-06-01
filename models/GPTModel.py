@@ -279,6 +279,7 @@ def generate_text(
 
 
 def train():
+    model.train()
     dir_name = f"/Users/mertcan/Desktop/Chatbot/checkpoint/{time.time()}"
     train_losses = []
     val_losses = []
@@ -342,6 +343,5 @@ def train():
         plt.show()
     torch.save(model.state_dict(), "model_weights.pth")
     print("Model weights saved successfully")
-
 
 # train()
