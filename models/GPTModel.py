@@ -29,12 +29,12 @@ def decode(indices):
 
 
 # Hyper params
-n_embd = 8
-n_head = 6
+n_embd = 32
+n_head = 12
 n_layer = 20
 dropout = 0.3
-batch_size = 4
-block_size = 4
+batch_size = 128
+block_size = 128
 decoder = decode
 encoder = encode
 device = device
@@ -344,4 +344,4 @@ def train():
     torch.save(model.state_dict(), "model_weights.pth")
     print("Model weights saved successfully")
 
-# train()
+train()
