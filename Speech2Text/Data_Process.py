@@ -12,24 +12,24 @@ class DataProcessor:
 
         # Default parameters optimized for embedded systems with NVIDIA GPUs
         default_params = {
-            'audio_feature': 'mel',
-            'target_sample_rate': 16000,  # Increased for better quality, still manageable for embedded systems
-            'n_mfcc': 20,
-            'n_fft': 512,  # Increased for better frequency resolution
-            'hop_length': 160,  # Adjusted for overlap
-            'win_length': 400,  # Adjusted window length
-            'n_mels': 64,  # Increased for better frequency resolution
-            'fmin': 20,
-            'fmax': 7000,  # Increased upper frequency limit
-            'power': 2.0,
-            'ref': np.max,
-            'top_db': 80.0,
-            'max_audio_length': 15,  # Increased maximum audio length (seconds)
-            'pre_emphasis': 0.97,
-            'n_chroma': 12,
-            'n_spectral_centroid': 1,
-            'n_spectral_rolloff': 1,
-            'batch_size': 64  # Increased batch size for GPU processing
+            'audio_feature': 'mfcc',  # Changed to MFCC as it's a common default
+            'target_sample_rate': 22050,  # Standard sample rate for many audio processing tasks
+            'n_mfcc': 13,  # Common default for MFCC
+            'n_fft': 1024,  # Standard default
+            'hop_length': 512,  # Standard default
+            'win_length': None,  # Default is None, which sets it equal to n_fft
+            'n_mels': 128,  # Common default for mel spectrograms
+            'fmin': 0,  # Default lower frequency limit
+            'fmax': None,  # Default is None, which sets it to sr/2
+            'power': 2.0,  # Default, squared amplitude
+            'ref': 1.0,  # Default reference point
+            'top_db': 80.0,  # Default top decibels
+            'max_audio_length': 10,  # Default maximum audio length in seconds
+            'pre_emphasis': 0.97,  # Common default for pre-emphasis
+            'n_chroma': 12,  # Default number of chroma bins
+            'n_spectral_centroid': 1,  # Default
+            'n_spectral_rolloff': 1,  # Default
+            'batch_size': 32  # Common default batch size
         }
 
         self.params = {**default_params, **kwargs}
@@ -218,27 +218,25 @@ class DataProcessor:
             padded_shapes=padded_shapes,
             padding_values=padding_values,
             drop_remainder=True
-        )
+        ).repeat()
 
         return dataset.prefetch(tf.data.AUTOTUNE)
 
 
-"""
-# Usage example
 data_path = "cv-corpus-18.0-2024-06-14/tr"
 data_processor = DataProcessor()
 
 data_processor.add_dataset(os.path.join(data_path, "train.tsv"), name='train', sep='\t')
-data_processor.get_sample('train', frac=0.01, reset=True)
+data_processor.add_dataset(os.path.join(data_path, "dev.tsv"), name='dev', sep='\t')
+data_processor.get_sample('train', frac=0.1, reset=True)
+data_processor.get_sample('dev', frac=0.1, reset=True)
 data_processor.set_alphabet(file_name="alphabet.txt")
 
 train_x, train_y = data_processor.prepare_dataset("train", x_feature="path", y_feature="sentence",
                                                   dataset_path=os.path.join(data_path, "clips"))
 train_dataset = data_processor.get_dataset(train_x, train_y, x_padding_value=-80, y_padding_value=0)
 
-print(f"Input shape: {data_processor.input_shape}")
-print(f"Number of classes: {data_processor.num_classes}")
+dev_x, dev_y = data_processor.prepare_dataset("dev", x_feature="path", y_feature="sentence",
+                                                  dataset_path=os.path.join(data_path, "clips"))
+dev_dataset = data_processor.get_dataset(train_x, train_y, x_padding_value=-80, y_padding_value=0)
 
-for x, y in train_dataset:
-    print(f"Batch shapes - X: {x.shape}, Y: {y.shape}")
-"""
