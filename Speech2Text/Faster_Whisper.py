@@ -7,9 +7,6 @@ import time
 from faster_whisper import WhisperModel
 import os
 
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
-os.environ['OMP_NUM_THREADS'] = '1'
-
 model_size = "medium"
 
 # Run on GPU with FP16
